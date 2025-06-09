@@ -945,6 +945,9 @@
                             if (this.currentRepo) {
                                 console.log('🔄 Loading repository files automatically...');
                                 await this.loadRepositoryFiles();
+                                
+                                // 最後に開いたファイルを自動で開く
+                                await this.autoOpenLastFile();
                             }
                             
                             // 選択されたリポジトリ情報も復元
@@ -1030,14 +1033,43 @@
                 }
             }
             
+            getStoredLastFile() {
+                try {
+                    const stored = localStorage.getItem('lastOpenedFile') || sessionStorage.getItem('lastOpenedFile');
+                    return stored ? JSON.parse(stored) : null;
+                } catch(e) {
+                    console.warn('Last file retrieval failed:', e);
+                    return null;
+                }
+            }
+            
+            setStoredLastFile(fileInfo) {
+                try {
+                    const fileData = JSON.stringify({
+                        name: fileInfo.name,
+                        path: fileInfo.path,
+                        sha: fileInfo.sha,
+                        repo: this.currentRepo,
+                        timestamp: Date.now()
+                    });
+                    localStorage.setItem('lastOpenedFile', fileData);
+                    sessionStorage.setItem('lastOpenedFile', fileData);
+                    console.log('💾 Last opened file saved:', fileInfo.name);
+                } catch(e) {
+                    console.warn('Last file save failed:', e);
+                }
+            }
+            
             clearStoredAuth() {
                 try {
                     localStorage.removeItem('githubToken');
                     localStorage.removeItem('currentRepo');
                     localStorage.removeItem('selectedRepo');
+                    localStorage.removeItem('lastOpenedFile');
                     sessionStorage.removeItem('githubToken');
                     sessionStorage.removeItem('currentRepo');
                     sessionStorage.removeItem('selectedRepo');
+                    sessionStorage.removeItem('lastOpenedFile');
                     this.githubToken = null;
                     this.currentRepo = null;
                     this.selectedRepo = null;
@@ -1524,6 +1556,9 @@
                 const editor = document.getElementById('editor');
                 editor.value = content;
                 
+                // 最後に開いたファイルとして記憶
+                this.setStoredLastFile(file);
+                
                 // SHAを記録して同期チェックを開始
                 this.lastKnownSHA = file.sha;
                 this.hideSyncNotification(); // 既存の通知をクリア
@@ -1828,6 +1863,45 @@
                     alert('ファイル作成中にエラーが発生しました');
                 } finally {
                     this.showLoading(false);
+                }
+            }
+            
+            async autoOpenLastFile() {
+                try {
+                    const lastFile = this.getStoredLastFile();
+                    
+                    if (!lastFile) {
+                        console.log('📁 No last opened file found');
+                        return;
+                    }
+                    
+                    // 同じリポジトリの場合のみ自動で開く
+                    if (lastFile.repo !== this.currentRepo) {
+                        console.log('📁 Last file was from different repository, skipping auto-open');
+                        return;
+                    }
+                    
+                    console.log('🔄 Auto-opening last file:', lastFile.name);
+                    
+                    // ファイル一覧から該当ファイルを検索
+                    const targetFile = this.files.find(file => file.name === lastFile.name);
+                    
+                    if (targetFile) {
+                        console.log('✅ Found last file in current repository, opening...');
+                        
+                        // 少し遅延させてファイル一覧の読み込み完了を待つ
+                        setTimeout(async () => {
+                            await this.loadFile(targetFile);
+                            console.log('✅ Last opened file automatically restored:', lastFile.name);
+                        }, 1000);
+                    } else {
+                        console.log('⚠️ Last opened file not found in current repository:', lastFile.name);
+                        // ファイルが見つからない場合は記録を削除
+                        localStorage.removeItem('lastOpenedFile');
+                        sessionStorage.removeItem('lastOpenedFile');
+                    }
+                } catch (error) {
+                    console.warn('Failed to auto-open last file:', error);
                 }
             }
             
