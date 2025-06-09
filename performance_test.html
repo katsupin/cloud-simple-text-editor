@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>パフォーマンステスト - 大容量ファイル検証</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #editor {
+            width: 100%;
+            height: 400px;
+            font-family: monospace;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 大容量ファイル パフォーマンステスト</h1>
+        
+        <div class="warning">
+            <strong>⚠️ 注意:</strong> このテストは大容量ファイル（2.8MB, 8万行超）を使用します。ブラウザが一時的に重くなる可能性があります。
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 テスト1: ファイル読み込み性能</h2>
+            <p>大容量テストファイルの読み込み時間とメモリ使用量を測定します。</p>
+            
+            <button onclick="testFileLoad()">ファイル読み込みテスト開始</button>
+            <button onclick="clearEditor()">エディタクリア</button>
+            
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" id="loadTime">-</div>
+                    <div class="metric-label">読み込み時間 (ms)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="fileSize">-</div>
+                    <div class="metric-label">ファイルサイズ (MB)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="lineCount">-</div>
+                    <div class="metric-label">行数</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="memoryUsage">-</div>
+                    <div class="metric-label">メモリ使用量 (MB)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📝 テスト2: エディタ操作性能</h2>
+            <p>大容量ファイルでの編集操作の応答性を確認します。</p>
+            
+            <button onclick="testEditingPerformance()">編集性能テスト開始</button>
+            <button onclick="testScrollingPerformance()">スクロール性能テスト</button>
+            
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" id="editResponseTime">-</div>
+                    <div class="metric-label">編集応答時間 (ms)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="scrollResponseTime">-</div>
+                    <div class="metric-label">スクロール応答時間 (ms)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="renderTime">-</div>
+                    <div class="metric-label">再描画時間 (ms)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="fps">-</div>
+                    <div class="metric-label">平均FPS</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📄 エディタプレビュー</h2>
+            <p>テスト用の大容量ファイルがここに読み込まれます。</p>
+            <textarea id="editor" placeholder="ここに大容量ファイルが読み込まれます..."></textarea>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 テストログ</h2>
+            <div class="log" id="testLog">テスト開始前...</div>
+        </div>
+    </div>
+
+    <script>
+        let testData = '';
+        let performanceMetrics = {};
+        
+        function log(message) {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateMetric(elementId, value, unit = '') {
+            document.getElementById(elementId).textContent = value + unit;
+        }
+        
+        function getMemoryUsage() {
+            if (performance.memory) {
+                return (performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(2);
+            }
+            return 'N/A';
+        }
+        
+        async function loadTestFile() {
+            try {
+                log('テストファイルを読み込み中...');
+                const response = await fetch('./test_large_note.md');
+                if (!response.ok) {
+                    throw new Error('ファイルが見つかりません');
+                }
+                testData = await response.text();
+                
+                const sizeBytes = new Blob([testData]).size;
+                const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+                const lines = testData.split('\n').length;
+                
+                updateMetric('fileSize', sizeMB, ' MB');
+                updateMetric('lineCount', lines.toLocaleString());
+                
+                log(`ファイル読み込み完了: ${sizeMB}MB, ${lines.toLocaleString()}行`);
+                return true;
+            } catch (error) {
+                log(`エラー: ${error.message}`);
+                log('テストファイルが見つかりません。generate_test_data.py を実行してください。');
+                return false;
+            }
+        }
+        
+        async function testFileLoad() {
+            log('=== ファイル読み込みテスト開始 ===');
+            
+            if (!testData) {
+                const loaded = await loadTestFile();
+                if (!loaded) return;
+            }
+            
+            const startTime = performance.now();
+            const startMemory = getMemoryUsage();
+            
+            log('エディタにファイルを読み込み中...');
+            
+            // エディタに読み込み
+            const editor = document.getElementById('editor');
+            editor.value = testData;
+            
+            const endTime = performance.now();
+            const endMemory = getMemoryUsage();
+            const loadTime = (endTime - startTime).toFixed(2);
+            
+            updateMetric('loadTime', loadTime, ' ms');
+            updateMetric('memoryUsage', endMemory, ' MB');
+            
+            log(`読み込み完了: ${loadTime}ms`);
+            log(`メモリ使用量: ${startMemory}MB → ${endMemory}MB`);
+            log('=== ファイル読み込みテスト完了 ===');
+        }
+        
+        function testEditingPerformance() {
+            log('=== 編集性能テスト開始 ===');
+            
+            const editor = document.getElementById('editor');
+            if (!editor.value) {
+                log('エラー: ファイルが読み込まれていません');
+                return;
+            }
+            
+            const testString = '\nテスト編集: ' + new Date().toISOString();
+            const iterations = 10;
+            let totalTime = 0;
+            
+            log(`${iterations}回の編集操作を実行中...`);
+            
+            for (let i = 0; i < iterations; i++) {
+                const startTime = performance.now();
+                
+                // テキストの末尾に追加
+                editor.value += testString + ` (${i + 1})`;
+                
+                // DOM更新を強制
+                editor.scrollTop = editor.scrollHeight;
+                
+                const endTime = performance.now();
+                totalTime += (endTime - startTime);
+            }
+            
+            const avgTime = (totalTime / iterations).toFixed(2);
+            updateMetric('editResponseTime', avgTime, ' ms');
+            
+            log(`平均編集応答時間: ${avgTime}ms`);
+            log('=== 編集性能テスト完了 ===');
+        }
+        
+        function testScrollingPerformance() {
+            log('=== スクロール性能テスト開始 ===');
+            
+            const editor = document.getElementById('editor');
+            if (!editor.value) {
+                log('エラー: ファイルが読み込まれていません');
+                return;
+            }
+            
+            let frameCount = 0;
+            let totalFrameTime = 0;
+            const testDuration = 2000; // 2秒間
+            
+            const startTime = performance.now();
+            let lastFrameTime = startTime;
+            
+            function scrollTest() {
+                const currentTime = performance.now();
+                const frameTime = currentTime - lastFrameTime;
+                
+                if (frameTime > 0) {
+                    totalFrameTime += frameTime;
+                    frameCount++;
+                }
+                
+                // スクロール操作
+                editor.scrollTop = (currentTime % 1000) / 1000 * (editor.scrollHeight - editor.clientHeight);
+                
+                lastFrameTime = currentTime;
+                
+                if (currentTime - startTime < testDuration) {
+                    requestAnimationFrame(scrollTest);
+                } else {
+                    // テスト完了
+                    const avgFrameTime = (totalFrameTime / frameCount).toFixed(2);
+                    const fps = (1000 / (totalFrameTime / frameCount)).toFixed(1);
+                    
+                    updateMetric('scrollResponseTime', avgFrameTime, ' ms');
+                    updateMetric('fps', fps);
+                    
+                    log(`平均フレーム時間: ${avgFrameTime}ms`);
+                    log(`平均FPS: ${fps}`);
+                    log('=== スクロール性能テスト完了 ===');
+                }
+            }
+            
+            log('2秒間のスクロールテストを実行中...');
+            requestAnimationFrame(scrollTest);
+        }
+        
+        function clearEditor() {
+            document.getElementById('editor').value = '';
+            log('エディタをクリアしました');
+            
+            // メトリクスもリセット
+            updateMetric('loadTime', '-');
+            updateMetric('editResponseTime', '-');
+            updateMetric('scrollResponseTime', '-');
+            updateMetric('renderTime', '-');
+            updateMetric('fps', '-');
+        }
+        
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('パフォーマンステストページが読み込まれました');
+            log('ブラウザ情報: ' + navigator.userAgent);
+            log('初期メモリ使用量: ' + getMemoryUsage() + ' MB');
+            
+            // 定期的にメモリ使用量を更新
+            setInterval(() => {
+                updateMetric('memoryUsage', getMemoryUsage(), ' MB');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
