@@ -178,7 +178,7 @@
             font-weight: bold; /* 太字で視認性向上 */
             text-shadow: 0 0 2px rgba(100, 180, 255, 0.3); /* 微妙なグロー効果 */
             white-space: pre-wrap;
-            overflow: hidden;
+            overflow: visible;
             z-index: 1;
             padding: 20px;
             padding-bottom: calc(100vh - 250px);
@@ -2268,6 +2268,8 @@
                     overlay.style.display = 'block';
                     overlay.style.visibility = 'visible';
                     overlay.style.zIndex = '10';
+                    overlay.style.overflow = 'visible';
+                    overlay.style.pointerEvents = 'none';
                     
                     this.updateWhitespaceOverlay();
                 } else {
@@ -2317,8 +2319,15 @@
                 const editor = document.getElementById('editor');
                 const overlay = document.getElementById('whitespaceOverlay');
                 
-                overlay.scrollTop = editor.scrollTop;
-                overlay.scrollLeft = editor.scrollLeft;
+                if (overlay && editor) {
+                    overlay.scrollTop = editor.scrollTop;
+                    overlay.scrollLeft = editor.scrollLeft;
+                    
+                    console.log('🔄 Scroll sync:', {
+                        editorScrollTop: editor.scrollTop,
+                        overlayScrollTop: overlay.scrollTop
+                    });
+                }
             }
             
             startDrag(event) {
