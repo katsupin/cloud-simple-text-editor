@@ -1723,17 +1723,17 @@
                 console.log('🔄 Starting sync monitoring for:', this.currentFile.name);
                 console.log('   SHA:', this.lastKnownSHA);
                 
-                // 最初のチェックは30秒後に実行（初期化完了を待つ）
+                // 最初のチェックは60秒後に実行（初期化完了を十分に待つ）
                 setTimeout(() => {
                     if (this.syncInterval) { // まだ有効な場合のみ
                         this.checkForUpdates();
                     }
-                }, 30000);
+                }, 60000);
                 
-                // その後は10秒間隔で更新チェック
+                // その後は30秒間隔で更新チェック（頻度を下げて安定化）
                 this.syncInterval = setInterval(() => {
                     this.checkForUpdates();
-                }, 10000);
+                }, 30000);
             }
             
             stopSyncMonitoring() {
@@ -1899,39 +1899,66 @@
             }
             
             showSyncNotification(message, actions = [], type = 'info') {
+                // メッセージが空の場合は通知を表示しない
+                if (!message || message.trim() === '') {
+                    console.warn('Empty message - skipping notification display');
+                    return;
+                }
+                
                 const notification = document.getElementById('syncNotification');
                 const messageEl = document.getElementById('syncMessage');
                 const actionsEl = document.getElementById('syncActions');
+                
+                // 要素が存在しない場合の安全性チェック
+                if (!notification || !messageEl || !actionsEl) {
+                    console.error('Sync notification elements not found');
+                    return;
+                }
                 
                 messageEl.textContent = message;
                 
                 // アクションボタンを生成
                 actionsEl.innerHTML = '';
                 actions.forEach(action => {
-                    const button = document.createElement('button');
-                    button.className = 'sync-btn';
-                    button.textContent = action.text;
-                    button.onclick = action.action;
-                    actionsEl.appendChild(button);
+                    if (action && action.text && action.action) {
+                        const button = document.createElement('button');
+                        button.className = 'sync-btn';
+                        button.textContent = action.text;
+                        button.onclick = action.action;
+                        actionsEl.appendChild(button);
+                    }
                 });
                 
-                // 閉じるボタンを追加
-                if (actions.length > 0) {
-                    const closeBtn = document.createElement('button');
-                    closeBtn.className = 'sync-btn';
-                    closeBtn.textContent = '✕';
-                    closeBtn.onclick = () => this.hideSyncNotification();
-                    actionsEl.appendChild(closeBtn);
-                }
+                // 閉じるボタンを常に追加
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'sync-btn';
+                closeBtn.textContent = '✕';
+                closeBtn.onclick = () => this.hideSyncNotification();
+                actionsEl.appendChild(closeBtn);
                 
                 // スタイルを適用
                 notification.className = `sync-notification ${type}`;
                 notification.classList.remove('hidden');
+                
+                console.log('📢 Sync notification displayed:', message);
             }
             
             hideSyncNotification() {
                 const notification = document.getElementById('syncNotification');
-                notification.classList.add('hidden');
+                if (notification) {
+                    notification.classList.add('hidden');
+                    notification.style.display = 'none'; // 追加の安全策
+                    
+                    // 内容もクリア
+                    const messageEl = document.getElementById('syncMessage');
+                    const actionsEl = document.getElementById('syncActions');
+                    if (messageEl) messageEl.textContent = '';
+                    if (actionsEl) actionsEl.innerHTML = '';
+                    
+                    console.log('🔕 Sync notification hidden');
+                } else {
+                    console.warn('Sync notification element not found');
+                }
             }
             
             // エディタを正常状態に復旧
@@ -2194,6 +2221,50 @@
                     window.app.resetEditorToNormalState();
                     document.getElementById('editor').value = '';
                     console.log('✅ Editor reset complete');
+                },
+                clearAllNotifications: () => {
+                    // すべての通知とエラー状態をクリア
+                    console.log('🧹 Clearing all notifications and error states...');
+                    window.app.hideSyncNotification();
+                    window.app.stopSyncMonitoring();
+                    window.app.hideSyncIndicator();
+                    console.log('✅ All notifications cleared');
+                },
+                quickFix: () => {
+                    // ワンクリック修復
+                    console.log('⚡ Quick fix: clearing notifications and resetting sync...');
+                    window.app.hideSyncNotification();
+                    window.app.stopSyncMonitoring();
+                    window.app.hideSyncIndicator();
+                    
+                    // 強制的にバナーを隠す
+                    const notification = document.getElementById('syncNotification');
+                    if (notification) {
+                        notification.style.display = 'none';
+                        notification.classList.add('hidden');
+                    }
+                    
+                    // 現在のファイルがあれば同期を再開
+                    if (window.app.currentFile && window.app.githubToken) {
+                        setTimeout(() => {
+                            window.app.startSyncMonitoring();
+                        }, 2000);
+                        console.log('🔄 Sync monitoring will restart in 2 seconds');
+                    }
+                    console.log('✅ Quick fix complete');
+                },
+                forceHideBanner: () => {
+                    // 強制的に橙色バーを隠す
+                    console.log('🔨 Force hiding orange banner...');
+                    const notification = document.getElementById('syncNotification');
+                    if (notification) {
+                        notification.style.display = 'none !important';
+                        notification.classList.add('hidden');
+                        notification.remove(); // 完全に削除
+                        console.log('✅ Orange banner forcefully removed');
+                    } else {
+                        console.log('❌ Orange banner element not found');
+                    }
                 }
             };
         });
