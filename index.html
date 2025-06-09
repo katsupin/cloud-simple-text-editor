@@ -1293,6 +1293,25 @@
                     }
                 });
                 
+                // モバイル環境でファイル読み込み完了時にサイドバーを自動で閉じる
+                if (window.innerWidth <= 768) {
+                    // スムーズな視覚フィードバック付きで自動クローズ
+                    setTimeout(() => {
+                        console.log('📱 Auto-closing mobile sidebar after file load');
+                        this.closeMobileMenu();
+                        
+                        // エディタにフォーカスを当ててすぐに編集できるようにする
+                        setTimeout(() => {
+                            const editor = document.getElementById('editor');
+                            if (editor && !editor.disabled) {
+                                editor.focus();
+                                // モバイルでキーボードが出ない場合があるので、カーソルを文末に移動
+                                editor.setSelectionRange(editor.value.length, editor.value.length);
+                            }
+                        }, 100);
+                    }, 300); // 300ms後に自動で閉じる（ユーザーが変更を認識できる時間を確保）
+                }
+                
                 console.log('✅ File loaded successfully:', file.name);
             }
             
