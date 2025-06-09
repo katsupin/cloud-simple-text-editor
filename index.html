@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e1e1e">
     <title>クラウドシンプルテキスト - GitHub連携ノートエディタ</title>
     <style>
         * {
@@ -316,10 +319,195 @@
         .auth-remember input[type="checkbox"] {
             margin: 0;
         }
+        
+        /* ハンバーガーメニューボタン */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #cccccc;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        .mobile-menu-btn:hover {
+            color: #ffffff;
+        }
+        
+        /* モバイル対応レスポンシブ */
+        @media (max-width: 768px) {
+            .header {
+                flex-wrap: wrap;
+                padding: 10px 15px;
+            }
+            
+            .header h1 {
+                font-size: 16px;
+                flex: 1;
+            }
+            
+            .auth-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .status {
+                font-size: 11px;
+            }
+            
+            .main-container {
+                flex-direction: column;
+                height: calc(100vh - 50px);
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid #3e3e42;
+                padding: 15px;
+                overflow-y: auto;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                position: fixed;
+                top: 50px;
+                left: 0;
+                z-index: 100;
+                background: #252526;
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .editor-container {
+                flex: 1;
+                min-height: 0;
+            }
+            
+            .editor {
+                font-size: 16px;
+                padding: 15px;
+                line-height: 1.4;
+            }
+            
+            .performance-info {
+                padding: 8px 15px;
+                font-size: 11px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            /* 認証ダイアログのモバイル対応 */
+            .auth-dialog {
+                min-width: 90vw;
+                max-width: 90vw;
+                padding: 20px;
+                margin: 10px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .form-input {
+                font-size: 16px;
+                padding: 12px;
+            }
+            
+            .repo-list {
+                max-height: 150px;
+            }
+            
+            .repo-item {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .dialog-buttons {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            /* コンテキストメニューのモバイル対応 */
+            .context-menu {
+                min-width: 200px;
+            }
+            
+            .context-menu-item {
+                padding: 12px 16px;
+                font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .auth-dialog {
+                min-width: 95vw;
+                max-width: 95vw;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 14px;
+            }
+            
+            .btn {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+            
+            .editor {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .performance-info {
+                font-size: 10px;
+                padding: 6px 10px;
+            }
+        }
+        
+        /* タッチデバイス最適化 */
+        @media (hover: none) and (pointer: coarse) {
+            .file-item,
+            .repo-item,
+            .context-menu-item,
+            .btn {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+            
+            .file-item:active,
+            .repo-item:active,
+            .context-menu-item:active {
+                background: #094771;
+            }
+            
+            .btn:active {
+                transform: scale(0.98);
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
         <h1>🗂️ クラウドシンプルテキスト</h1>
         <div class="auth-controls">
             <span class="status" id="status">未接続</span>
@@ -423,6 +611,9 @@
                 document.getElementById('cancelAuth').addEventListener('click', () => this.hideAuthDialog());
                 document.getElementById('githubToken').addEventListener('input', () => this.onTokenInput());
                 
+                // モバイルメニューのイベントリスナー
+                document.getElementById('mobileMenuBtn').addEventListener('click', () => this.toggleMobileMenu());
+                
                 // コンテキストメニューのイベントリスナー
                 document.getElementById('fileList').addEventListener('contextmenu', (e) => this.showContextMenu(e));
                 document.getElementById('createFileItem').addEventListener('click', () => this.createNewFile());
@@ -434,6 +625,10 @@
                     // 認証ダイアログの外側クリックで閉じる
                     if (e.target.id === 'authDialog') {
                         this.hideAuthDialog();
+                    }
+                    // モバイルメニューの外側クリックで閉じる
+                    if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-menu-btn')) {
+                        this.closeMobileMenu();
                     }
                 });
                 document.addEventListener('scroll', () => this.hideContextMenu());
@@ -806,6 +1001,33 @@
                 }
             }
             
+            toggleMobileMenu() {
+                const sidebar = document.querySelector('.sidebar');
+                const isOpen = sidebar.classList.contains('mobile-open');
+                
+                if (isOpen) {
+                    this.closeMobileMenu();
+                } else {
+                    this.openMobileMenu();
+                }
+            }
+            
+            openMobileMenu() {
+                const sidebar = document.querySelector('.sidebar');
+                const menuBtn = document.getElementById('mobileMenuBtn');
+                
+                sidebar.classList.add('mobile-open');
+                menuBtn.textContent = '✕';
+            }
+            
+            closeMobileMenu() {
+                const sidebar = document.querySelector('.sidebar');
+                const menuBtn = document.getElementById('mobileMenuBtn');
+                
+                sidebar.classList.remove('mobile-open');
+                menuBtn.textContent = '☰';
+            }
+            
             showContextMenu(event) {
                 event.preventDefault();
                 
@@ -954,6 +1176,20 @@
                     window.app.showAuthDialog();
                     window.app.renderRepositoryList();
                     document.getElementById('repoGroup').style.display = 'block';
+                },
+                testMobile: () => {
+                    // モバイル表示のテスト
+                    document.body.style.width = '375px';
+                    document.body.style.margin = '0 auto';
+                    document.body.style.border = '2px solid #ccc';
+                    console.log('📱 Mobile view activated (375px)');
+                },
+                resetView: () => {
+                    // 表示をリセット
+                    document.body.style.width = '';
+                    document.body.style.margin = '';
+                    document.body.style.border = '';
+                    console.log('🖥️ Desktop view restored');
                 }
             };
         });
