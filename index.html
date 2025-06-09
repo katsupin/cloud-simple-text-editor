@@ -186,6 +186,136 @@
             background: #3e3e42;
             margin: 4px 0;
         }
+        
+        .auth-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 30px;
+            min-width: 400px;
+            max-width: 500px;
+            z-index: 1001;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+        
+        .auth-dialog h2 {
+            margin-bottom: 20px;
+            color: #ffffff;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cccccc;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #0e639c;
+        }
+        
+        .repo-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            background: #1e1e1e;
+        }
+        
+        .repo-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #3e3e42;
+            color: #cccccc;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .repo-item:hover {
+            background: #2a2d2e;
+        }
+        
+        .repo-item.selected {
+            background: #094771;
+            color: #ffffff;
+        }
+        
+        .repo-item:last-child {
+            border-bottom: none;
+        }
+        
+        .repo-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        .repo-name {
+            font-weight: bold;
+        }
+        
+        .repo-description {
+            font-size: 12px;
+            color: #888888;
+            margin-top: 2px;
+        }
+        
+        .repo-private {
+            background: #f39c12;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .btn-cancel {
+            background: #666;
+        }
+        
+        .btn-cancel:hover {
+            background: #777;
+        }
+        
+        .auth-remember {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .auth-remember input[type="checkbox"] {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -236,6 +366,36 @@
         </div>
     </div>
 
+    <!-- 認証ダイアログ -->
+    <div class="auth-dialog hidden" id="authDialog">
+        <h2>🔐 GitHub ログイン</h2>
+        
+        <div class="form-group">
+            <label for="githubToken">Personal Access Token:</label>
+            <input type="password" id="githubToken" class="form-input" 
+                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                   autocomplete="current-password">
+            <div class="auth-remember">
+                <input type="checkbox" id="rememberToken">
+                <label for="rememberToken">このデバイスでトークンを記憶する</label>
+            </div>
+        </div>
+        
+        <div class="form-group" id="repoGroup" style="display: none;">
+            <label>リポジトリを選択:</label>
+            <div class="repo-list" id="repoList">
+                <div style="padding: 20px; text-align: center; color: #888;">
+                    リポジトリを読み込み中...
+                </div>
+            </div>
+        </div>
+        
+        <div class="dialog-buttons">
+            <button class="btn btn-cancel" id="cancelAuth">キャンセル</button>
+            <button class="btn" id="proceedAuth">次へ</button>
+        </div>
+    </div>
+
     <script>
         class CloudSimpleText {
             constructor() {
@@ -243,6 +403,8 @@
                 this.currentRepo = null;
                 this.currentFile = null;
                 this.files = [];
+                this.repositories = [];
+                this.selectedRepo = null;
                 this.performanceMetrics = {};
                 
                 this.initEventListeners();
@@ -250,11 +412,16 @@
             }
             
             initEventListeners() {
-                document.getElementById('loginBtn').addEventListener('click', () => this.login());
+                document.getElementById('loginBtn').addEventListener('click', () => this.showAuthDialog());
                 document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
-                document.getElementById('changeRepoBtn').addEventListener('click', () => this.changeRepository());
+                document.getElementById('changeRepoBtn').addEventListener('click', () => this.showAuthDialog());
                 document.getElementById('editor').addEventListener('input', () => this.onEditorChange());
                 document.getElementById('editor').addEventListener('blur', () => this.saveFile());
+                
+                // 認証ダイアログのイベントリスナー
+                document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
+                document.getElementById('cancelAuth').addEventListener('click', () => this.hideAuthDialog());
+                document.getElementById('githubToken').addEventListener('input', () => this.onTokenInput());
                 
                 // コンテキストメニューのイベントリスナー
                 document.getElementById('fileList').addEventListener('contextmenu', (e) => this.showContextMenu(e));
@@ -262,8 +429,26 @@
                 document.getElementById('refreshFilesItem').addEventListener('click', () => this.refreshFileList());
                 
                 // コンテキストメニューを閉じる
-                document.addEventListener('click', () => this.hideContextMenu());
+                document.addEventListener('click', (e) => {
+                    this.hideContextMenu();
+                    // 認証ダイアログの外側クリックで閉じる
+                    if (e.target.id === 'authDialog') {
+                        this.hideAuthDialog();
+                    }
+                });
                 document.addEventListener('scroll', () => this.hideContextMenu());
+                
+                // キーボードショートカット
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.hideContextMenu();
+                        this.hideAuthDialog();
+                    }
+                    if (e.ctrlKey && e.key === 'l') {
+                        e.preventDefault();
+                        this.showAuthDialog();
+                    }
+                });
             }
             
             checkAuthStatus() {
@@ -277,15 +462,151 @@
                 }
             }
             
-            async login() {
-                // GitHub OAuth フローの簡略版（実際の実装では適切なOAuthフローを使用）
-                const token = prompt('GitHub Personal Access Token を入力してください:\n\n(repo スコープが必要です)');
-                if (token) {
-                    localStorage.setItem('githubToken', token);
-                    this.githubToken = token;
+            showAuthDialog() {
+                // 保存されているトークンがあれば自動入力
+                const savedToken = localStorage.getItem('githubToken');
+                if (savedToken) {
+                    document.getElementById('githubToken').value = savedToken;
+                    document.getElementById('rememberToken').checked = true;
+                }
+                
+                document.getElementById('authDialog').classList.remove('hidden');
+                document.getElementById('repoGroup').style.display = 'none';
+                document.getElementById('proceedAuth').textContent = '次へ';
+                this.selectedRepo = null;
+            }
+            
+            hideAuthDialog() {
+                document.getElementById('authDialog').classList.add('hidden');
+                // パスワードフィールドをクリア（セキュリティのため）
+                if (!document.getElementById('rememberToken').checked) {
+                    document.getElementById('githubToken').value = '';
+                }
+            }
+            
+            async onTokenInput() {
+                const token = document.getElementById('githubToken').value.trim();
+                if (token.length > 30) { // GitHub tokenの最小長チェック
+                    document.getElementById('proceedAuth').textContent = 'リポジトリ一覧取得';
+                }
+            }
+            
+            async handleAuthProceed() {
+                const token = document.getElementById('githubToken').value.trim();
+                const rememberToken = document.getElementById('rememberToken').checked;
+                
+                if (!token) {
+                    alert('Personal Access Token を入力してください');
+                    return;
+                }
+                
+                // ステップ1: トークン検証とリポジトリ一覧取得
+                if (!this.repositories.length) {
+                    this.showLoading(true);
+                    try {
+                        this.githubToken = token;
+                        await this.loadUserRepositories();
+                        
+                        // トークンの保存/削除
+                        if (rememberToken) {
+                            localStorage.setItem('githubToken', token);
+                        } else {
+                            localStorage.removeItem('githubToken');
+                        }
+                        
+                        // リポジトリ選択画面に移行
+                        document.getElementById('repoGroup').style.display = 'block';
+                        document.getElementById('proceedAuth').textContent = 'ログイン';
+                        
+                    } catch (error) {
+                        alert('トークンが無効か、ネットワークエラーが発生しました');
+                        console.error('Auth error:', error);
+                    } finally {
+                        this.showLoading(false);
+                    }
+                }
+                // ステップ2: 選択されたリポジトリでログイン
+                else if (this.selectedRepo) {
+                    this.currentRepo = this.selectedRepo.full_name;
+                    localStorage.setItem('currentRepo', this.currentRepo);
+                    this.hideAuthDialog();
                     this.updateAuthUI(true);
                     await this.loadRepositoryFiles();
+                } else {
+                    alert('リポジトリを選択してください');
                 }
+            }
+            
+            async loadUserRepositories() {
+                const response = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+                    headers: {
+                        'Authorization': `token ${this.githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch repositories');
+                }
+                
+                this.repositories = await response.json();
+                this.renderRepositoryList();
+            }
+            
+            renderRepositoryList() {
+                const repoList = document.getElementById('repoList');
+                repoList.innerHTML = '';
+                
+                // 最近使用したリポジトリを上位に表示
+                const recentRepo = localStorage.getItem('currentRepo');
+                const sortedRepos = [...this.repositories].sort((a, b) => {
+                    if (a.full_name === recentRepo) return -1;
+                    if (b.full_name === recentRepo) return 1;
+                    return new Date(b.updated_at) - new Date(a.updated_at);
+                });
+                
+                sortedRepos.forEach(repo => {
+                    const item = document.createElement('div');
+                    item.className = 'repo-item';
+                    
+                    const repoInfo = document.createElement('div');
+                    repoInfo.className = 'repo-info';
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'repo-name';
+                    nameDiv.textContent = repo.full_name;
+                    
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'repo-description';
+                    descDiv.textContent = repo.description || '説明なし';
+                    
+                    repoInfo.appendChild(nameDiv);
+                    repoInfo.appendChild(descDiv);
+                    item.appendChild(repoInfo);
+                    
+                    // プライベートリポジトリの表示
+                    if (repo.private) {
+                        const privateLabel = document.createElement('div');
+                        privateLabel.className = 'repo-private';
+                        privateLabel.textContent = 'PRIVATE';
+                        item.appendChild(privateLabel);
+                    }
+                    
+                    // 最近使用したリポジトリをデフォルト選択
+                    if (repo.full_name === recentRepo) {
+                        item.classList.add('selected');
+                        this.selectedRepo = repo;
+                    }
+                    
+                    item.addEventListener('click', () => {
+                        // 他の選択を解除
+                        document.querySelectorAll('.repo-item').forEach(i => i.classList.remove('selected'));
+                        item.classList.add('selected');
+                        this.selectedRepo = repo;
+                    });
+                    
+                    repoList.appendChild(item);
+                });
             }
             
             logout() {
@@ -293,6 +614,7 @@
                 localStorage.removeItem('currentRepo');
                 this.githubToken = null;
                 this.currentRepo = null;
+                this.repositories = [];
                 this.updateAuthUI(false);
                 this.clearEditor();
             }
@@ -476,11 +798,11 @@
             }
             
             changeRepository() {
-                const newRepo = prompt('新しいリポジトリ名を入力してください (例: username/repo-name):');
-                if (newRepo && newRepo !== this.currentRepo) {
-                    this.currentRepo = newRepo;
-                    localStorage.setItem('currentRepo', newRepo);
-                    this.loadRepositoryFiles();
+                // 既存のリポジトリリストがあれば再利用、なければ再取得
+                this.showAuthDialog();
+                if (this.repositories.length > 0) {
+                    document.getElementById('repoGroup').style.display = 'block';
+                    document.getElementById('proceedAuth').textContent = 'リポジトリ変更';
                 }
             }
             
@@ -591,7 +913,49 @@
         
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
-            new CloudSimpleText();
+            console.log('🚀 Cloud Simple Text v2.0 - Starting...');
+            window.app = new CloudSimpleText();
+            console.log('✅ App initialized successfully');
+            
+            // デバッグ用ヘルパー関数
+            window.debugApp = {
+                checkAuth: () => {
+                    console.log('Current auth status:', {
+                        token: !!window.app.githubToken,
+                        repo: window.app.currentRepo,
+                        repositories: window.app.repositories.length
+                    });
+                },
+                clearStorage: () => {
+                    localStorage.clear();
+                    console.log('✅ LocalStorage cleared');
+                },
+                testToken: (token) => {
+                    window.app.githubToken = token;
+                    window.app.loadUserRepositories();
+                },
+                mockLogin: () => {
+                    // テスト用のモックデータ
+                    window.app.repositories = [
+                        {
+                            full_name: 'katsupin/my-private-notes',
+                            description: 'プライベートノート集',
+                            private: true,
+                            updated_at: '2023-12-01T00:00:00Z'
+                        },
+                        {
+                            full_name: 'katsupin/public-docs',
+                            description: '公開ドキュメント',
+                            private: false,
+                            updated_at: '2023-11-01T00:00:00Z'
+                        }
+                    ];
+                    console.log('✅ Mock repositories loaded');
+                    window.app.showAuthDialog();
+                    window.app.renderRepositoryList();
+                    document.getElementById('repoGroup').style.display = 'block';
+                }
+            };
         });
     </script>
 </body>
