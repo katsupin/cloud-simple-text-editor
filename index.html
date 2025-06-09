@@ -561,8 +561,10 @@
         <div class="form-group">
             <label for="githubToken">Personal Access Token:</label>
             <input type="password" id="githubToken" class="form-input" 
+                   name="github-token"
                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                   autocomplete="current-password">
+                   autocomplete="current-password"
+                   data-form-type="password">
             <div class="auth-remember">
                 <input type="checkbox" id="rememberToken">
                 <label for="rememberToken">このデバイスでトークンを記憶する</label>
@@ -647,8 +649,8 @@
             }
             
             checkAuthStatus() {
-                this.githubToken = localStorage.getItem('githubToken');
-                this.currentRepo = localStorage.getItem('currentRepo');
+                this.githubToken = this.getStoredToken();
+                this.currentRepo = this.getStoredRepo();
                 if (this.githubToken) {
                     this.updateAuthUI(true);
                     if (this.currentRepo) {
@@ -657,9 +659,53 @@
                 }
             }
             
+            // モバイル対応のストレージメソッド
+            getStoredToken() {
+                try {
+                    return localStorage.getItem('githubToken') || sessionStorage.getItem('githubToken');
+                } catch(e) {
+                    console.warn('Storage access failed:', e);
+                    return null;
+                }
+            }
+            
+            getStoredRepo() {
+                try {
+                    return localStorage.getItem('currentRepo') || sessionStorage.getItem('currentRepo');
+                } catch(e) {
+                    console.warn('Storage access failed:', e);
+                    return null;
+                }
+            }
+            
+            setStoredToken(token, remember = true) {
+                try {
+                    if (remember) {
+                        localStorage.setItem('githubToken', token);
+                        sessionStorage.setItem('githubToken', token);
+                    } else {
+                        localStorage.removeItem('githubToken');
+                        sessionStorage.setItem('githubToken', token);
+                    }
+                } catch(e) {
+                    console.warn('Storage save failed:', e);
+                    // フォールバック: メモリ保存
+                    this.githubToken = token;
+                }
+            }
+            
+            setStoredRepo(repo) {
+                try {
+                    localStorage.setItem('currentRepo', repo);
+                    sessionStorage.setItem('currentRepo', repo);
+                } catch(e) {
+                    console.warn('Storage save failed:', e);
+                }
+            }
+            
             showAuthDialog() {
                 // 保存されているトークンがあれば自動入力
-                const savedToken = localStorage.getItem('githubToken');
+                const savedToken = this.getStoredToken();
                 if (savedToken) {
                     document.getElementById('githubToken').value = savedToken;
                     document.getElementById('rememberToken').checked = true;
@@ -703,11 +749,7 @@
                         await this.loadUserRepositories();
                         
                         // トークンの保存/削除
-                        if (rememberToken) {
-                            localStorage.setItem('githubToken', token);
-                        } else {
-                            localStorage.removeItem('githubToken');
-                        }
+                        this.setStoredToken(token, rememberToken);
                         
                         // リポジトリ選択画面に移行
                         document.getElementById('repoGroup').style.display = 'block';
@@ -723,7 +765,7 @@
                 // ステップ2: 選択されたリポジトリでログイン
                 else if (this.selectedRepo) {
                     this.currentRepo = this.selectedRepo.full_name;
-                    localStorage.setItem('currentRepo', this.currentRepo);
+                    this.setStoredRepo(this.currentRepo);
                     this.hideAuthDialog();
                     this.updateAuthUI(true);
                     await this.loadRepositoryFiles();
@@ -1190,6 +1232,34 @@
                     document.body.style.margin = '';
                     document.body.style.border = '';
                     console.log('🖥️ Desktop view restored');
+                },
+                checkMobileStorage: () => {
+                    // モバイルストレージの診断
+                    console.log('📱 Mobile Storage Diagnosis:');
+                    console.log('- User Agent:', navigator.userAgent);
+                    console.log('- localStorage available:', typeof(Storage) !== "undefined");
+                    console.log('- localStorage working:', (() => {
+                        try {
+                            localStorage.setItem('test', 'test');
+                            localStorage.removeItem('test');
+                            return true;
+                        } catch(e) {
+                            return false;
+                        }
+                    })());
+                    console.log('- Stored token:', localStorage.getItem('githubToken') ? 'EXISTS' : 'NOT_FOUND');
+                    console.log('- Private browsing:', (() => {
+                        try {
+                            const testKey = 'privatetest_' + Math.random();
+                            localStorage.setItem(testKey, 'test');
+                            localStorage.removeItem(testKey);
+                            return false;
+                        } catch(e) {
+                            return true;
+                        }
+                    })());
+                    console.log('- Platform:', navigator.platform);
+                    console.log('- Is Mobile:', /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
                 }
             };
         });
