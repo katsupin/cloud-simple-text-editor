@@ -132,6 +132,7 @@
             line-height: 1.5;
             color: #d4d4d4;
             padding: 20px;
+            padding-bottom: calc(100vh - 250px); /* 最下行を画面最上部まで表示可能にする */
         }
         
         .performance-info {
@@ -688,6 +689,7 @@
                 flex: 1;
                 font-size: 16px;
                 padding: 15px;
+                padding-bottom: calc(100vh - 200px); /* モバイル用: 最下行を画面最上部まで表示可能 */
                 line-height: 1.4;
                 min-height: 0;
                 overflow-y: auto;
@@ -856,7 +858,7 @@
             <span class="status" id="status">未接続</span>
             <button class="btn secondary" id="changeRepoBtn" style="display: none;" title="リポジトリ変更">📁</button>
             <button class="btn" id="loginBtn" title="GitHub でログイン">🔐</button>
-            <button class="btn secondary hidden" id="logoutBtn" title="ログアウト">🚪</button>
+            <button class="btn secondary hidden" id="logoutBtn" title="ログアウト">🔓</button>
         </div>
     </div>
     
