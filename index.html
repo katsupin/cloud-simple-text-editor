@@ -166,10 +166,10 @@
         /* 不可視文字表示用のオーバーレイ */
         .whitespace-overlay {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: calc(100vh - 250px);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
@@ -180,11 +180,20 @@
             white-space: pre-wrap;
             overflow: hidden;
             z-index: 1;
+            padding: 20px;
             padding-bottom: calc(100vh - 250px);
+            box-sizing: border-box;
         }
         
         .editor-container {
             position: relative;
+        }
+        
+        .editor-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         .editor.show-whitespace {
@@ -758,13 +767,14 @@
             }
             
             .whitespace-overlay {
-                top: 15px;
-                left: 15px;
-                right: 15px;
-                bottom: calc(100vh - 200px);
+                padding: 15px;
+                padding-bottom: calc(100vh - 200px);
                 font-size: 16px;
                 line-height: 1.4;
-                padding-bottom: calc(100vh - 200px);
+            }
+            
+            .editor-wrapper {
+                flex: 1;
             }
             
             .performance-info {
@@ -947,8 +957,10 @@
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
                 </div>
             </div>
-            <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
-            <textarea class="editor" id="editor" placeholder="GitHub にログインしてファイルを開始してください..."></textarea>
+            <div class="editor-wrapper">
+                <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
+                <textarea class="editor" id="editor" placeholder="GitHub にログインしてファイルを開始してください..."></textarea>
+            </div>
             <div class="performance-info">
                 <span>📊 パフォーマンス:</span>
                 <span id="perfLines">行数: 0</span>
