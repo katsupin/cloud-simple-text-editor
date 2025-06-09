@@ -1207,19 +1207,47 @@
                 this.showLoading(true);
                 
                 try {
-                    console.log('Loading file:', file.name, 'URL:', file.download_url);
+                    console.log('📁 Loading file:', file.name);
+                    console.log('   Download URL:', file.download_url);
+                    
+                    // Token付きURLやプライベートリポジトリの場合は最初からAPI経由を使用
+                    if (file.download_url.includes('?token=') || !file.download_url || this.isPrivateRepo()) {
+                        console.log('🔑 Private repo or token URL detected, using API method');
+                        const apiContent = await this.getFileContentViaAPI(file.name);
+                        if (apiContent) {
+                            console.log('✅ Successfully loaded via API');
+                            return this.processFileContent(file, apiContent, startTime);
+                        } else {
+                            console.log('❌ API method failed, falling back to download URL...');
+                        }
+                    }
                     
                     // まず最新のファイル情報を取得
                     let fileUrl = file.download_url;
                     
-                    // URLにtoken付きパラメータがある場合は404の可能性があるので最新情報を取得
+                    // URLにtoken付きパラメータがある場合はGitHub API経由で直接取得を試行
                     if (fileUrl.includes('?token=') || !fileUrl) {
-                        console.log('Refreshing file info due to token parameter or missing URL');
-                        const updatedFile = await this.getLatestFileInfo(file.name);
-                        if (updatedFile) {
-                            fileUrl = updatedFile.download_url;
-                            // ファイル情報を更新
-                            this.updateFileInList(file.name, updatedFile);
+                        console.log('⚠️ Token-based URL detected, using API content retrieval instead');
+                        const apiContent = await this.getFileContentViaAPI(file.name);
+                        if (apiContent) {
+                            console.log('✅ Content retrieved via API, skipping download URL');
+                            return this.processFileContent(file, apiContent, startTime);
+                        } else {
+                            console.log('🔄 API retrieval failed, trying to refresh file info...');
+                            const updatedFile = await this.getLatestFileInfo(file.name);
+                            if (updatedFile) {
+                                fileUrl = updatedFile.download_url;
+                                // Token付きURLの場合は再度API経由を試行
+                                if (fileUrl.includes('?token=')) {
+                                    console.log('⚠️ Updated URL still has token, using API content again');
+                                    const retryApiContent = await this.getFileContentViaAPI(file.name);
+                                    if (retryApiContent) {
+                                        return this.processFileContent(updatedFile, retryApiContent, startTime);
+                                    }
+                                }
+                                // ファイル情報を更新
+                                this.updateFileInList(file.name, updatedFile);
+                            }
                         }
                     }
                     
@@ -1366,26 +1394,40 @@
             async getFileContentViaAPI(fileName) {
                 try {
                     console.log(`📡 Getting file content via API for: ${fileName}`);
+                    console.log(`   Repository: ${this.currentRepo}`);
+                    
                     const response = await fetch(`https://api.github.com/repos/${this.currentRepo}/contents/${fileName}`, {
                         headers: {
                             'Authorization': `token ${this.githubToken}`,
-                            'Accept': 'application/vnd.github.v3+json'
+                            'Accept': 'application/vnd.github.v3+json',
+                            'User-Agent': 'CloudSimpleText'
                         }
                     });
+                    
+                    console.log(`📡 API Response status: ${response.status}`);
                     
                     if (response.ok) {
                         const fileData = await response.json();
                         if (fileData.content) {
-                            // Base64デコード
-                            const content = atob(fileData.content.replace(/\n/g, ''));
+                            // UTF-8対応のBase64デコード
+                            const content = this.decodeBase64ToUTF8(fileData.content.replace(/\n/g, ''));
                             console.log(`✅ Content retrieved via API: ${fileName} (${content.length} characters)`);
+                            
+                            // ファイル情報を更新（API経由で取得した最新情報）
+                            if (this.currentFile && this.currentFile.name === fileName) {
+                                this.currentFile.sha = fileData.sha;
+                                this.lastKnownSHA = fileData.sha;
+                            }
+                            
                             return content;
                         } else {
                             console.warn(`⚠️ No content field in API response for ${fileName}`);
                             return null;
                         }
                     } else {
-                        console.warn(`⚠️ API content retrieval failed for ${fileName}: ${response.status}`);
+                        const errorText = await response.text();
+                        console.warn(`⚠️ API content retrieval failed for ${fileName}: ${response.status} ${response.statusText}`);
+                        console.warn(`   Error details:`, errorText);
                         return null;
                     }
                 } catch (error) {
@@ -1481,7 +1523,8 @@
                 this.showLoading(true);
                 try {
                     const content = document.getElementById('editor').value;
-                    const contentBase64 = btoa(unescape(encodeURIComponent(content)));
+                    // UTF-8対応のBase64エンコード
+                    const contentBase64 = this.encodeUTF8ToBase64(content);
                     
                     const response = await fetch(`https://api.github.com/repos/${this.currentRepo}/contents/${this.currentFile.name}`, {
                         method: 'PUT',
@@ -1655,7 +1698,8 @@
                 try {
                     // GitHub APIで新しいファイルを作成
                     const initialContent = `# ${fileName.replace(/\.[^/.]+$/, "")}\n\n作成日時: ${new Date().toLocaleString()}\n\n`;
-                    const contentBase64 = btoa(unescape(encodeURIComponent(initialContent)));
+                    // UTF-8対応のBase64エンコード
+                    const contentBase64 = this.encodeUTF8ToBase64(initialContent);
                     
                     const response = await fetch(`https://api.github.com/repos/${this.currentRepo}/contents/${fileName}`, {
                         method: 'PUT',
@@ -1801,8 +1845,8 @@
             }
             
             async handleFileConflict(latestFileInfo) {
-                // 最新のファイル内容を取得
-                const latestContent = atob(latestFileInfo.content.replace(/\n/g, ''));
+                // 最新のファイル内容を取得（UTF-8対応）
+                const latestContent = this.decodeBase64ToUTF8(latestFileInfo.content.replace(/\n/g, ''));
                 const currentContent = document.getElementById('editor').value;
                 
                 // 内容が同じ場合は静かに更新
@@ -1980,6 +2024,61 @@
             isEditorInError() {
                 const editor = document.getElementById('editor');
                 return editor.readOnly || editor.disabled || this.isEditorInErrorState;
+            }
+            
+            // プライベートリポジトリかどうかを判定
+            isPrivateRepo() {
+                // 選択されたリポジトリ情報からプライベート判定
+                if (this.selectedRepo && this.selectedRepo.private) {
+                    return true;
+                }
+                // リポジトリ一覧から現在のリポジトリを検索
+                const currentRepoInfo = this.repositories.find(repo => repo.full_name === this.currentRepo);
+                return currentRepoInfo ? currentRepoInfo.private : false;
+            }
+            
+            // UTF-8対応のBase64デコード
+            decodeBase64ToUTF8(base64String) {
+                try {
+                    // 最新のブラウザでは TextDecoder を使用
+                    if (typeof TextDecoder !== 'undefined') {
+                        const bytes = Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
+                        const decoder = new TextDecoder('utf-8');
+                        return decoder.decode(bytes);
+                    } else {
+                        // フォールバック: デコードして再エンコード
+                        const binaryString = atob(base64String);
+                        // UTF-8バイトシーケンスを正しくデコード
+                        return decodeURIComponent(escape(binaryString));
+                    }
+                } catch (error) {
+                    console.warn('UTF-8 decode failed, falling back to basic atob:', error);
+                    // 最後の手段として基本的なatobを使用
+                    return atob(base64String);
+                }
+            }
+            
+            // UTF-8対応のBase64エンコード
+            encodeUTF8ToBase64(text) {
+                try {
+                    // 最新のブラウザでは TextEncoder を使用
+                    if (typeof TextEncoder !== 'undefined') {
+                        const encoder = new TextEncoder();
+                        const bytes = encoder.encode(text);
+                        let binaryString = '';
+                        for (let i = 0; i < bytes.length; i++) {
+                            binaryString += String.fromCharCode(bytes[i]);
+                        }
+                        return btoa(binaryString);
+                    } else {
+                        // フォールバック: 従来の方法
+                        return btoa(unescape(encodeURIComponent(text)));
+                    }
+                } catch (error) {
+                    console.warn('UTF-8 encode failed, falling back to basic btoa:', error);
+                    // 最後の手段として基本的なbtoaを使用
+                    return btoa(text);
+                }
             }
         }
         
