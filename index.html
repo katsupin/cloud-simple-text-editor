@@ -915,14 +915,49 @@
                 });
             }
             
-            checkAuthStatus() {
+            async checkAuthStatus() {
                 this.githubToken = this.getStoredToken();
                 this.currentRepo = this.getStoredRepo();
+                
                 if (this.githubToken) {
-                    this.updateAuthUI(true);
-                    if (this.currentRepo) {
-                        this.loadRepositoryFiles();
+                    console.log('🔑 Stored token found, attempting auto-login...');
+                    console.log('📁 Stored repository:', this.currentRepo);
+                    
+                    // トークンの有効性を検証
+                    try {
+                        const testResponse = await fetch('https://api.github.com/user', {
+                            headers: {
+                                'Authorization': `token ${this.githubToken}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
+                        
+                        if (testResponse.ok) {
+                            console.log('✅ Token is valid, auto-login successful');
+                            this.updateAuthUI(true);
+                            
+                            // リポジトリ情報も復元
+                            if (this.currentRepo) {
+                                console.log('🔄 Loading repository files automatically...');
+                                await this.loadRepositoryFiles();
+                            }
+                            
+                            // 選択されたリポジトリ情報も復元
+                            const storedSelectedRepo = this.getStoredSelectedRepo();
+                            if (storedSelectedRepo) {
+                                this.selectedRepo = storedSelectedRepo;
+                                console.log('📋 Restored selected repository info');
+                            }
+                        } else {
+                            console.warn('⚠️ Stored token is invalid, clearing auth data');
+                            this.clearStoredAuth();
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Token validation failed:', error);
+                        this.clearStoredAuth();
                     }
+                } else {
+                    console.log('🔓 No stored token found');
                 }
             }
             
@@ -967,6 +1002,45 @@
                     sessionStorage.setItem('currentRepo', repo);
                 } catch(e) {
                     console.warn('Storage save failed:', e);
+                }
+            }
+            
+            getStoredSelectedRepo() {
+                try {
+                    const stored = localStorage.getItem('selectedRepo') || sessionStorage.getItem('selectedRepo');
+                    return stored ? JSON.parse(stored) : null;
+                } catch(e) {
+                    console.warn('Selected repo retrieval failed:', e);
+                    return null;
+                }
+            }
+            
+            setStoredSelectedRepo(repoInfo) {
+                try {
+                    const repoData = JSON.stringify(repoInfo);
+                    localStorage.setItem('selectedRepo', repoData);
+                    sessionStorage.setItem('selectedRepo', repoData);
+                } catch(e) {
+                    console.warn('Selected repo save failed:', e);
+                }
+            }
+            
+            clearStoredAuth() {
+                try {
+                    localStorage.removeItem('githubToken');
+                    localStorage.removeItem('currentRepo');
+                    localStorage.removeItem('selectedRepo');
+                    sessionStorage.removeItem('githubToken');
+                    sessionStorage.removeItem('currentRepo');
+                    sessionStorage.removeItem('selectedRepo');
+                    this.githubToken = null;
+                    this.currentRepo = null;
+                    this.selectedRepo = null;
+                    this.repositories = [];
+                    this.updateAuthUI(false);
+                    this.clearEditor();
+                } catch(e) {
+                    console.warn('Clear auth failed:', e);
                 }
             }
             
@@ -1033,6 +1107,7 @@
                 else if (this.selectedRepo) {
                     this.currentRepo = this.selectedRepo.full_name;
                     this.setStoredRepo(this.currentRepo);
+                    this.setStoredSelectedRepo(this.selectedRepo); // 選択されたリポジトリ情報も保存
                     this.hideAuthDialog();
                     this.updateAuthUI(true);
                     await this.loadRepositoryFiles();
@@ -1114,15 +1189,11 @@
             }
             
             logout() {
-                localStorage.removeItem('githubToken');
-                localStorage.removeItem('currentRepo');
-                this.githubToken = null;
-                this.currentRepo = null;
-                this.repositories = [];
+                console.log('🚪 Logging out and clearing all stored data...');
+                this.clearStoredAuth();
                 this.stopSyncMonitoring();
                 this.hideSyncNotification();
-                this.updateAuthUI(false);
-                this.clearEditor();
+                console.log('✅ Logout complete');
             }
             
             updateAuthUI(isLoggedIn) {
