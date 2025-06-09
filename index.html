@@ -2259,14 +2259,26 @@
                 this.showWhitespace = !this.showWhitespace;
                 
                 if (this.showWhitespace) {
+                    console.log('🔄 Enabling whitespace display');
                     toggle.classList.add('active');
                     overlay.classList.remove('hidden');
                     editor.classList.add('show-whitespace');
+                    
+                    // 強制表示設定
+                    overlay.style.display = 'block';
+                    overlay.style.visibility = 'visible';
+                    overlay.style.zIndex = '10';
+                    
                     this.updateWhitespaceOverlay();
                 } else {
+                    console.log('🔄 Disabling whitespace display');
                     toggle.classList.remove('active');
                     overlay.classList.add('hidden');
                     editor.classList.remove('show-whitespace');
+                    
+                    // デバッグスタイルをクリア
+                    overlay.style.border = '';
+                    overlay.style.backgroundColor = '';
                 }
             }
             
@@ -2277,6 +2289,11 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
+                console.log('🔍 Debug: updateWhitespaceOverlay called');
+                console.log('📝 Editor text length:', text.length);
+                console.log('📱 Overlay element:', overlay);
+                console.log('📐 Overlay computed style:', getComputedStyle(overlay));
+                
                 // 不可視文字を視覚化（より視認性の高い記号を使用）
                 const visualizedText = text
                     .replace(/ /g, '·')  // 通常スペース → 中点
@@ -2284,8 +2301,14 @@
                     .replace(/　/g, '□') // 全角スペース → 四角
                     .replace(/\n/g, '¶\n'); // 改行 → パラグラフ記号+改行（より見やすい）
                 
+                console.log('✨ Visualized text sample:', visualizedText.substring(0, 50));
+                
                 overlay.textContent = visualizedText;
                 this.syncOverlayScroll();
+                
+                // デバッグ用スタイル強制適用
+                overlay.style.border = '2px solid red'; // 一時的な可視化
+                overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // 半透明赤背景
             }
             
             syncOverlayScroll() {
@@ -2978,6 +3001,31 @@
                     } else {
                         console.log('❌ No file loaded - open a file to test sync');
                     }
+                },
+                testWhitespace: () => {
+                    // 不可視文字テスト用
+                    console.log('🧪 Testing whitespace display...');
+                    const editor = document.getElementById('editor');
+                    const overlay = document.getElementById('whitespaceOverlay');
+                    
+                    // テスト用テキストを挿入
+                    editor.value = 'Hello World\nThis has spaces and\ttabs\n　And full-width spaces';
+                    
+                    // 強制的に不可視文字表示をON
+                    if (window.app) {
+                        window.app.showWhitespace = true;
+                        window.app.toggleWhitespaceDisplay();
+                        window.app.updateWhitespaceOverlay();
+                    }
+                    
+                    console.log('📱 Overlay element:', overlay);
+                    console.log('📐 Overlay styles:', {
+                        display: getComputedStyle(overlay).display,
+                        visibility: getComputedStyle(overlay).visibility,
+                        zIndex: getComputedStyle(overlay).zIndex,
+                        color: getComputedStyle(overlay).color,
+                        position: getComputedStyle(overlay).position
+                    });
                 },
                 simulateConflict: () => {
                     // コンフリクトのシミュレーション
