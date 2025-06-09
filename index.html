@@ -2063,6 +2063,7 @@
                 // スタイルを適用
                 notification.className = `sync-notification ${type}`;
                 notification.classList.remove('hidden');
+                notification.style.display = 'flex'; // display: none を解除
                 
                 console.log('📢 Sync notification displayed:', message);
             }
