@@ -174,7 +174,9 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.5;
-            color: rgba(150, 150, 150, 0.5);
+            color: rgba(100, 180, 255, 0.9); /* 明るい青色で視認性向上 */
+            font-weight: bold; /* 太字で視認性向上 */
+            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3); /* 微妙なグロー効果 */
             white-space: pre-wrap;
             overflow: hidden;
             z-index: 1;
@@ -188,7 +190,7 @@
         .editor.show-whitespace {
             position: relative;
             z-index: 2;
-            background: transparent;
+            background: rgba(30, 30, 30, 0.95); /* わずかに透明にしてオーバーレイを見やすく */
         }
         
         .performance-info {
@@ -2263,12 +2265,12 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                // 不可視文字を視覚化
+                // 不可視文字を視覚化（より視認性の高い記号を使用）
                 const visualizedText = text
                     .replace(/ /g, '·')  // 通常スペース → 中点
                     .replace(/\t/g, '→') // タブ → 矢印
                     .replace(/　/g, '□') // 全角スペース → 四角
-                    .replace(/\n/g, '↵\n'); // 改行 → 矢印+改行
+                    .replace(/\n/g, '¶\n'); // 改行 → パラグラフ記号+改行（より見やすい）
                 
                 overlay.textContent = visualizedText;
                 this.syncOverlayScroll();
