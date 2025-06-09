@@ -858,6 +858,8 @@
                 this.lastKnownSHA = null;
                 this.isCheckingUpdates = false;
                 this.isEditorInErrorState = false;
+                this.lastEditTime = 0;
+                this.isUserCurrentlyEditing = false;
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
@@ -870,6 +872,8 @@
                 document.getElementById('changeRepoBtn').addEventListener('click', () => this.showAuthDialog());
                 document.getElementById('editor').addEventListener('input', () => this.onEditorChange());
                 document.getElementById('editor').addEventListener('blur', () => this.saveFile());
+                document.getElementById('editor').addEventListener('keydown', () => this.onUserEdit());
+                document.getElementById('editor').addEventListener('paste', () => this.onUserEdit());
                 
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
@@ -1633,6 +1637,23 @@
                 }, 2000); // 2秒後に自動保存
             }
             
+            onUserEdit() {
+                this.lastEditTime = Date.now();
+                this.isUserCurrentlyEditing = true;
+                
+                // 5秒間編集がなければ編集終了とみなす
+                clearTimeout(this.editingTimeout);
+                this.editingTimeout = setTimeout(() => {
+                    this.isUserCurrentlyEditing = false;
+                    console.log('📝 User editing session ended');
+                }, 5000);
+            }
+            
+            isUserEditing() {
+                const timeSinceLastEdit = Date.now() - this.lastEditTime;
+                return this.isUserCurrentlyEditing && timeSinceLastEdit < 5000;
+            }
+            
             updatePerformanceInfo({ lines, sizeKB, memoryMB, loadTime }) {
                 document.getElementById('perfLines').textContent = `行数: ${lines.toLocaleString()}`;
                 document.getElementById('perfSize').textContent = `サイズ: ${sizeKB.toFixed(1)} KB`;
@@ -1929,21 +1950,24 @@
                     return;
                 }
                 
-                // コンフリクト通知を表示
-                this.showSyncNotification(
-                    '⚠️ 他の端末でファイルが更新されました',
-                    [
-                        {
-                            text: '最新版を見る',
-                            action: () => this.viewLatestVersion(latestFileInfo, latestContent)
-                        },
-                        {
-                            text: '無視する',
-                            action: () => this.ignoreSyncConflict()
+                // ユーザーが編集中かどうかで処理を分岐
+                if (this.isUserEditing()) {
+                    console.log('📝 User is currently editing, deferring auto-update');
+                    this.showQuietNotification('📝 他の端末で更新がありますが、編集中のため保留中です');
+                    this.showSyncIndicator('conflict');
+                    
+                    // 編集終了を待って再チェック
+                    setTimeout(() => {
+                        if (!this.isUserEditing()) {
+                            console.log('🔄 User editing ended, retrying sync...');
+                            this.checkForUpdates();
                         }
-                    ],
-                    'error'
-                );
+                    }, 6000);
+                } else {
+                    // 自動更新を実行
+                    console.log('🔄 Auto-updating to latest version...');
+                    await this.autoUpdateToLatestVersion(latestFileInfo, latestContent);
+                }
             }
             
             async viewLatestVersion(latestFileInfo, latestContent) {
@@ -1988,6 +2012,46 @@
                     // 3秒後に通知を自動で隠す
                     setTimeout(() => this.hideSyncNotification(), 3000);
                 }
+            }
+            
+            async autoUpdateToLatestVersion(latestFileInfo, latestContent) {
+                try {
+                    // エディタを最新版に更新
+                    document.getElementById('editor').value = latestContent;
+                    this.lastKnownSHA = latestFileInfo.sha;
+                    this.currentFile.sha = latestFileInfo.sha;
+                    
+                    // 成功通知を表示
+                    this.showQuietNotification('✅ 最新版に自動更新されました', 'success');
+                    this.showSyncIndicator('synced');
+                    
+                    // パフォーマンス情報も更新
+                    const lines = latestContent.split('\n').length;
+                    const sizeKB = new Blob([latestContent]).size / 1024;
+                    const memoryMB = this.getMemoryUsage();
+                    
+                    this.updatePerformanceInfo({
+                        lines,
+                        sizeKB,
+                        memoryMB,
+                        loadTime: 0
+                    });
+                    
+                    console.log('✅ Auto-update completed successfully');
+                } catch (error) {
+                    console.error('❌ Auto-update failed:', error);
+                    this.showQuietNotification('❌ 自動更新に失敗しました', 'error');
+                }
+            }
+            
+            showQuietNotification(message, type = 'info') {
+                // 控えめな通知（3秒で自動消去、アクションボタンなし）
+                this.showSyncNotification(message, [], type);
+                
+                // 3秒後に自動で隠す
+                setTimeout(() => {
+                    this.hideSyncNotification();
+                }, 3000);
             }
             
             ignoreSyncConflict() {
