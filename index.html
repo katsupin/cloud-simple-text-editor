@@ -343,8 +343,8 @@
         /* モバイル対応レスポンシブ */
         @media (max-width: 768px) {
             .header {
-                flex-wrap: wrap;
-                padding: 10px 15px;
+                flex-direction: column;
+                padding: 8px 15px;
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -352,55 +352,87 @@
                 z-index: 200;
                 background: #2d2d30;
                 border-bottom: 1px solid #3e3e42;
+                min-height: 50px;
+            }
+            
+            .header-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 5px;
             }
             
             .header h1 {
-                font-size: 16px;
+                font-size: 14px;
                 flex: 1;
+                margin: 0 10px;
             }
             
             .auth-controls {
+                display: flex;
                 flex-wrap: wrap;
-                gap: 8px;
+                gap: 4px;
+                justify-content: center;
             }
             
             .btn {
-                padding: 6px 12px;
-                font-size: 12px;
+                padding: 4px 8px;
+                font-size: 10px;
+                min-height: 24px;
             }
             
             .status {
-                font-size: 11px;
+                font-size: 9px;
+                width: 100%;
+                text-align: center;
+                margin-bottom: 2px;
             }
             
             body {
-                padding-top: 50px;
+                padding-top: 60px;
             }
             
             .main-container {
                 flex-direction: column;
-                height: calc(var(--vh, 1vh) * 100 - 50px);
-                min-height: calc(var(--vh, 1vh) * 100 - 50px);
+                height: calc(var(--vh, 1vh) * 100 - 60px);
+                min-height: calc(var(--vh, 1vh) * 100 - 60px);
                 position: relative;
             }
             
             .sidebar {
-                width: 100%;
-                height: auto;
-                max-height: calc(var(--vh, 1vh) * 50);
+                width: 85%;
+                height: calc(var(--vh, 1vh) * 100 - 60px);
+                max-height: calc(var(--vh, 1vh) * 100 - 60px);
                 border-right: none;
-                border-bottom: 1px solid #3e3e42;
-                padding: 15px;
-                overflow-y: auto;
+                border-bottom: none;
+                padding: 0;
+                overflow-y: hidden;
                 -webkit-overflow-scrolling: touch;
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
                 position: fixed;
-                top: 50px;
+                top: 60px;
                 left: 0;
-                z-index: 100;
+                z-index: 300;
                 background: #252526;
-                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.5);
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .sidebar h3 {
+                padding: 15px 15px 10px 15px;
+                margin: 0;
+                background: #2d2d30;
+                border-bottom: 1px solid #3e3e42;
+                flex-shrink: 0;
+            }
+            
+            .file-list {
+                flex: 1;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 10px;
             }
             
             .sidebar.mobile-open {
@@ -498,13 +530,39 @@
                 padding: 15px;
             }
             
+            .header {
+                min-height: 55px;
+                padding: 6px 10px;
+            }
+            
             .header h1 {
-                font-size: 14px;
+                font-size: 12px;
             }
             
             .btn {
-                font-size: 11px;
-                padding: 5px 10px;
+                font-size: 9px;
+                padding: 3px 6px;
+                min-height: 20px;
+            }
+            
+            .status {
+                font-size: 8px;
+            }
+            
+            body {
+                padding-top: 65px;
+            }
+            
+            .main-container {
+                height: calc(var(--vh, 1vh) * 100 - 65px);
+                min-height: calc(var(--vh, 1vh) * 100 - 65px);
+            }
+            
+            .sidebar {
+                width: 90%;
+                height: calc(var(--vh, 1vh) * 100 - 65px);
+                max-height: calc(var(--vh, 1vh) * 100 - 65px);
+                top: 65px;
             }
             
             .editor {
@@ -513,8 +571,9 @@
             }
             
             .performance-info {
-                font-size: 10px;
-                padding: 6px 10px;
+                font-size: 9px;
+                padding: 4px 8px;
+                max-height: 30px;
             }
         }
         
@@ -543,8 +602,10 @@
 </head>
 <body>
     <div class="header">
-        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
-        <h1>🗂️ クラウドシンプルテキスト</h1>
+        <div class="header-top">
+            <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+            <h1>🗂️ クラウドシンプルテキスト</h1>
+        </div>
         <div class="auth-controls">
             <span class="status" id="status">未接続</span>
             <button class="btn secondary" id="changeRepoBtn" style="display: none;">リポジトリ変更</button>
