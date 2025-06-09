@@ -112,8 +112,36 @@
             padding: 10px 20px;
             border-bottom: 1px solid #3e3e42;
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
+        }
+        
+        .editor-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tool-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #cccccc;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+        
+        .tool-btn.active {
+            background: #0e639c;
+            color: #ffffff;
+            border-color: #1177bb;
         }
         
         .file-info {
@@ -133,6 +161,34 @@
             color: #d4d4d4;
             padding: 20px;
             padding-bottom: calc(100vh - 250px); /* 最下行を画面最上部まで表示可能にする */
+        }
+        
+        /* 不可視文字表示用のオーバーレイ */
+        .whitespace-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: calc(100vh - 250px);
+            pointer-events: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: rgba(150, 150, 150, 0.5);
+            white-space: pre-wrap;
+            overflow: hidden;
+            z-index: 1;
+            padding-bottom: calc(100vh - 250px);
+        }
+        
+        .editor-container {
+            position: relative;
+        }
+        
+        .editor.show-whitespace {
+            position: relative;
+            z-index: 2;
+            background: transparent;
         }
         
         .performance-info {
@@ -683,6 +739,7 @@
                 display: flex;
                 flex-direction: column;
                 height: calc(100% - 40px);
+                position: relative;
             }
             
             .editor {
@@ -696,6 +753,16 @@
                 -webkit-overflow-scrolling: touch;
                 resize: none;
                 margin-bottom: 5px;
+            }
+            
+            .whitespace-overlay {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                bottom: calc(100vh - 200px);
+                font-size: 16px;
+                line-height: 1.4;
+                padding-bottom: calc(100vh - 200px);
             }
             
             .performance-info {
@@ -873,8 +940,12 @@
         <div class="editor-container">
             <div class="editor-header">
                 <div class="file-info" id="fileInfo">ファイルが選択されていません</div>
-                <div class="sync-indicator hidden" id="syncIndicator"></div>
+                <div class="editor-tools">
+                    <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
+                    <div class="sync-indicator hidden" id="syncIndicator"></div>
+                </div>
             </div>
+            <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
             <textarea class="editor" id="editor" placeholder="GitHub にログインしてファイルを開始してください..."></textarea>
             <div class="performance-info">
                 <span>📊 パフォーマンス:</span>
@@ -1001,6 +1072,11 @@
                 // エディタ操作時にスクロールコントロールを表示
                 document.getElementById('editor').addEventListener('focus', () => this.showScrollControl());
                 document.getElementById('editor').addEventListener('input', () => this.showScrollControl());
+                
+                // 不可視文字表示のイベントリスナー
+                document.getElementById('whitespaceToggle').addEventListener('click', () => this.toggleWhitespaceDisplay());
+                document.getElementById('editor').addEventListener('input', () => this.updateWhitespaceOverlay());
+                document.getElementById('editor').addEventListener('scroll', () => this.syncOverlayScroll());
                 
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
@@ -1689,6 +1765,9 @@
                 // モバイルスクロールコントロールを更新
                 setTimeout(() => this.updateScrollControl(), 100);
                 
+                // 不可視文字オーバーレイを更新
+                setTimeout(() => this.updateWhitespaceOverlay(), 100);
+                
                 // SHAを記録して同期チェックを開始
                 this.lastKnownSHA = file.sha;
                 this.hideSyncNotification(); // 既存の通知をクリア
@@ -2157,6 +2236,54 @@
             }
             
             // ドラッグ機能
+            // 不可視文字表示機能
+            toggleWhitespaceDisplay() {
+                const toggle = document.getElementById('whitespaceToggle');
+                const overlay = document.getElementById('whitespaceOverlay');
+                const editor = document.getElementById('editor');
+                
+                this.showWhitespace = !this.showWhitespace;
+                
+                if (this.showWhitespace) {
+                    toggle.classList.add('active');
+                    overlay.classList.remove('hidden');
+                    editor.classList.add('show-whitespace');
+                    this.updateWhitespaceOverlay();
+                } else {
+                    toggle.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    editor.classList.remove('show-whitespace');
+                }
+            }
+            
+            updateWhitespaceOverlay() {
+                if (!this.showWhitespace) return;
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('whitespaceOverlay');
+                const text = editor.value;
+                
+                // 不可視文字を視覚化
+                const visualizedText = text
+                    .replace(/ /g, '·')  // 通常スペース → 中点
+                    .replace(/\t/g, '→') // タブ → 矢印
+                    .replace(/　/g, '□') // 全角スペース → 四角
+                    .replace(/\n/g, '↵\n'); // 改行 → 矢印+改行
+                
+                overlay.textContent = visualizedText;
+                this.syncOverlayScroll();
+            }
+            
+            syncOverlayScroll() {
+                if (!this.showWhitespace) return;
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('whitespaceOverlay');
+                
+                overlay.scrollTop = editor.scrollTop;
+                overlay.scrollLeft = editor.scrollLeft;
+            }
+            
             startDrag(event) {
                 event.preventDefault();
                 this.isDragging = true;
