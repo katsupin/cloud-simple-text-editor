@@ -972,10 +972,18 @@
                 document.getElementById('loginBtn').addEventListener('click', () => this.showAuthDialog());
                 document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
                 document.getElementById('changeRepoBtn').addEventListener('click', () => this.showAuthDialog());
-                document.getElementById('editor').addEventListener('input', () => this.onEditorChange());
+                document.getElementById('editor').addEventListener('input', () => {
+                    this.onEditorChange();
+                    this.onUserEdit(); // 重要: inputイベントでも編集検出
+                });
                 document.getElementById('editor').addEventListener('blur', () => this.saveFile());
                 document.getElementById('editor').addEventListener('keydown', () => this.onUserEdit());
+                document.getElementById('editor').addEventListener('keyup', () => this.onUserEdit()); // キーアップも検出
                 document.getElementById('editor').addEventListener('paste', () => this.onUserEdit());
+                document.getElementById('editor').addEventListener('cut', () => this.onUserEdit()); // カット操作も検出
+                document.getElementById('editor').addEventListener('compositionstart', () => this.onUserEdit()); // IME開始
+                document.getElementById('editor').addEventListener('compositionupdate', () => this.onUserEdit()); // IME更新
+                document.getElementById('editor').addEventListener('compositionend', () => this.onUserEdit()); // IME終了
                 document.getElementById('editor').addEventListener('scroll', () => this.updateScrollControl());
                 
                 // スクロールコントロールのイベントリスナー
@@ -1802,17 +1810,45 @@
                 this.lastEditTime = Date.now();
                 this.isUserCurrentlyEditing = true;
                 
-                // 5秒間編集がなければ編集終了とみなす
+                // より保守的に15秒間編集がなければ編集終了とみなす
                 clearTimeout(this.editingTimeout);
                 this.editingTimeout = setTimeout(() => {
                     this.isUserCurrentlyEditing = false;
-                    console.log('📝 User editing session ended');
-                }, 5000);
+                    console.log('📝 User editing session ended (15s timeout)');
+                    this.updateEditingUI(false);
+                }, 15000); // 5秒→15秒に延長
+                
+                // 編集中UIを更新
+                this.updateEditingUI(true);
             }
             
             isUserEditing() {
                 const timeSinceLastEdit = Date.now() - this.lastEditTime;
-                return this.isUserCurrentlyEditing && timeSinceLastEdit < 5000;
+                const isEditingByTime = timeSinceLastEdit < 15000; // 15秒に統一
+                const isEditingByFlag = this.isUserCurrentlyEditing;
+                
+                // より保守的な判定: どちらかがtrueなら編集中とみなす
+                const result = isEditingByFlag || isEditingByTime;
+                
+                if (result) {
+                    console.log(`📝 User is editing (flag: ${isEditingByFlag}, time: ${(timeSinceLastEdit/1000).toFixed(1)}s ago)`);
+                }
+                
+                return result;
+            }
+            
+            updateEditingUI(isEditing) {
+                const indicator = document.getElementById('syncIndicator');
+                if (isEditing) {
+                    indicator.title = '📝 編集中 - 自動同期は一時停止中';
+                    // 編集中は薄いオレンジ色で表示
+                    if (!indicator.classList.contains('checking') && !indicator.classList.contains('conflict')) {
+                        indicator.style.backgroundColor = 'rgba(255, 165, 0, 0.3)';
+                    }
+                } else {
+                    indicator.title = '';
+                    indicator.style.backgroundColor = '';
+                }
             }
             
             updatePerformanceInfo({ lines, sizeKB, memoryMB, loadTime }) {
@@ -2298,22 +2334,35 @@
                     return;
                 }
                 
-                // ユーザーが編集中かどうかで処理を分岐
+                // ユーザーが編集中かどうかで処理を分岐（より保守的なロジック）
                 if (this.isUserEditing()) {
-                    console.log('📝 User is currently editing, deferring auto-update');
-                    this.showQuietNotification('📝 他の端末で更新がありますが、編集中のため保留中です');
+                    console.log('📝 User is currently editing, deferring auto-update (SAFE MODE)');
+                    this.showQuietNotification('📝 他の端末で更新がありますが、編集中のため安全に保留中です', 'warning');
                     this.showSyncIndicator('conflict');
                     
-                    // 編集終了を待って再チェック
+                    // より長い間隔で編集終了を待って再チェック（6秒→20秒）
                     setTimeout(() => {
                         if (!this.isUserEditing()) {
                             console.log('🔄 User editing ended, retrying sync...');
                             this.checkForUpdates();
+                        } else {
+                            console.log('📝 User still editing, will retry later...');
+                            // まだ編集中の場合はさらに20秒後に再チェック
+                            setTimeout(() => {
+                                if (!this.isUserEditing()) {
+                                    this.checkForUpdates();
+                                }
+                            }, 20000);
                         }
-                    }, 6000);
+                    }, 20000); // 6秒→20秒に延長
                 } else {
-                    // 自動更新を実行
-                    console.log('🔄 Auto-updating to latest version...');
+                    // 最終確認: 自動更新直前にもう一度編集中チェック
+                    if (this.isUserEditing()) {
+                        console.log('🛡️ Last-moment edit detected, aborting auto-update');
+                        return;
+                    }
+                    
+                    console.log('🔄 Auto-updating to latest version (confirmed safe)...');
                     await this.autoUpdateToLatestVersion(latestFileInfo, latestContent);
                 }
             }
