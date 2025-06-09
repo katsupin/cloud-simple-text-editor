@@ -1210,15 +1210,15 @@
                     console.log('📁 Loading file:', file.name);
                     console.log('   Download URL:', file.download_url);
                     
-                    // Token付きURLやプライベートリポジトリの場合は最初からAPI経由を使用
-                    if (file.download_url.includes('?token=') || !file.download_url || this.isPrivateRepo()) {
-                        console.log('🔑 Private repo or token URL detected, using API method');
+                    // プライベートリポジトリまたはToken付きURLの場合は常にAPI経由を使用
+                    if (this.isPrivateRepo() || file.download_url.includes('?token=') || !file.download_url) {
+                        console.log('🔑 Private repo or token URL detected, using API method exclusively');
                         const apiContent = await this.getFileContentViaAPI(file.name);
-                        if (apiContent) {
+                        if (apiContent !== null) {
                             console.log('✅ Successfully loaded via API');
                             return this.processFileContent(file, apiContent, startTime);
                         } else {
-                            console.log('❌ API method failed, falling back to download URL...');
+                            throw new Error('API content retrieval failed for private repository');
                         }
                     }
                     
@@ -2034,7 +2034,11 @@
                 }
                 // リポジトリ一覧から現在のリポジトリを検索
                 const currentRepoInfo = this.repositories.find(repo => repo.full_name === this.currentRepo);
-                return currentRepoInfo ? currentRepoInfo.private : false;
+                if (currentRepoInfo && currentRepoInfo.private) {
+                    return true;
+                }
+                // download URLにtokenが含まれている場合もプライベートと判定
+                return false;
             }
             
             // UTF-8対応のBase64デコード
