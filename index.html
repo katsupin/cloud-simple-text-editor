@@ -270,6 +270,75 @@
             margin: 4px 0;
         }
         
+        /* モバイル用フローティングスクロールコントロール */
+        .mobile-scroll-control {
+            position: fixed;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: rgba(45, 45, 48, 0.9);
+            border: 1px solid #3e3e42;
+            border-radius: 6px;
+            padding: 8px 4px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scroll-control-btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            margin: 4px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .scroll-control-btn:hover {
+            background: #1177bb;
+        }
+        
+        .scroll-control-btn:active {
+            background: #0a4a7a;
+            transform: scale(0.95);
+        }
+        
+        .scroll-indicator {
+            width: 20px;
+            height: 200px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 10px;
+            margin: 8px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scroll-thumb {
+            width: 18px;
+            background: #0e639c;
+            border-radius: 9px;
+            position: absolute;
+            left: 0;
+            transition: all 0.1s ease;
+            min-height: 20px;
+            cursor: pointer;
+        }
+        
+        .scroll-thumb:hover {
+            background: #1177bb;
+        }
+        
         .auth-dialog {
             position: fixed;
             top: 50%;
@@ -438,6 +507,10 @@
         
         /* モバイル対応レスポンシブ */
         @media (max-width: 768px) {
+            
+            .mobile-scroll-control {
+                display: flex;
+            }
             .header {
                 flex-direction: row;
                 padding: 10px 15px;
@@ -811,6 +884,15 @@
             🔄 ファイル一覧更新
         </div>
     </div>
+    
+    <!-- モバイル用フローティングスクロールコントロール -->
+    <div class="mobile-scroll-control" id="mobileScrollControl">
+        <button class="scroll-control-btn" id="scrollToTop" title="トップへ">↑</button>
+        <div class="scroll-indicator" id="scrollIndicator">
+            <div class="scroll-thumb" id="scrollThumb"></div>
+        </div>
+        <button class="scroll-control-btn" id="scrollToBottom" title="ボトムへ">↓</button>
+    </div>
 
     <!-- 認証ダイアログ -->
     <div class="auth-dialog hidden" id="authDialog">
@@ -860,6 +942,7 @@
                 this.isEditorInErrorState = false;
                 this.lastEditTime = 0;
                 this.isUserCurrentlyEditing = false;
+                this.scrollControlVisible = false;
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
@@ -874,6 +957,12 @@
                 document.getElementById('editor').addEventListener('blur', () => this.saveFile());
                 document.getElementById('editor').addEventListener('keydown', () => this.onUserEdit());
                 document.getElementById('editor').addEventListener('paste', () => this.onUserEdit());
+                document.getElementById('editor').addEventListener('scroll', () => this.updateScrollControl());
+                
+                // スクロールコントロールのイベントリスナー
+                document.getElementById('scrollToTop').addEventListener('click', () => this.scrollToTop());
+                document.getElementById('scrollToBottom').addEventListener('click', () => this.scrollToBottom());
+                document.getElementById('scrollIndicator').addEventListener('click', (e) => this.scrollToPosition(e));
                 
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
@@ -1559,6 +1648,9 @@
                 // 最後に開いたファイルとして記憶
                 this.setStoredLastFile(file);
                 
+                // モバイルスクロールコントロールを更新
+                setTimeout(() => this.updateScrollControl(), 100);
+                
                 // SHAを記録して同期チェックを開始
                 this.lastKnownSHA = file.sha;
                 this.hideSyncNotification(); // 既存の通知をクリア
@@ -1908,6 +2000,65 @@
                     }
                 } catch (error) {
                     console.warn('Failed to auto-open last file:', error);
+                }
+            }
+            
+            // モバイルスクロールコントロールの機能
+            updateScrollControl() {
+                const editor = document.getElementById('editor');
+                const scrollControl = document.querySelector('.mobile-scroll-control');
+                const scrollThumb = document.querySelector('.scroll-thumb');
+                
+                if (!scrollControl || !scrollThumb) return;
+                
+                // モバイルデバイスでのみ表示
+                if (window.innerWidth <= 768 && editor.scrollHeight > editor.clientHeight * 1.5) {
+                    scrollControl.style.display = 'flex';
+                    
+                    // スクロール位置を計算してサムの位置を更新
+                    const scrollPercentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+                    const maxThumbTop = scrollControl.clientHeight - 80; // ボタン分を除く
+                    const thumbTop = scrollPercentage * maxThumbTop + 30; // 上ボタン分のオフセット
+                    
+                    scrollThumb.style.top = `${thumbTop}px`;
+                } else {
+                    scrollControl.style.display = 'none';
+                }
+            }
+            
+            scrollToTop() {
+                const editor = document.getElementById('editor');
+                editor.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+            
+            scrollToBottom() {
+                const editor = document.getElementById('editor');
+                editor.scrollTo({
+                    top: editor.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+            
+            scrollToPosition(event) {
+                const editor = document.getElementById('editor');
+                const scrollControl = document.querySelector('.mobile-scroll-control');
+                const rect = scrollControl.getBoundingClientRect();
+                
+                // クリック位置を計算（上下ボタンを除く）
+                const clickY = event.clientY - rect.top - 30; // 上ボタン分のオフセット
+                const maxClickY = rect.height - 60; // 上下ボタン分を除く
+                
+                if (clickY >= 0 && clickY <= maxClickY) {
+                    const scrollPercentage = clickY / maxClickY;
+                    const targetScrollTop = scrollPercentage * (editor.scrollHeight - editor.clientHeight);
+                    
+                    editor.scrollTo({
+                        top: targetScrollTop,
+                        behavior: 'smooth'
+                    });
                 }
             }
             
@@ -2329,9 +2480,19 @@
             
             // モバイル対応の初期化
             setVh();
-            window.addEventListener('resize', setVh);
+            window.addEventListener('resize', () => {
+                setVh();
+                if (window.app) {
+                    window.app.updateScrollControl();
+                }
+            });
             window.addEventListener('orientationchange', () => {
-                setTimeout(setVh, 100); // オリエンテーション変更後に少し待つ
+                setTimeout(() => {
+                    setVh();
+                    if (window.app) {
+                        window.app.updateScrollControl();
+                    }
+                }, 100); // オリエンテーション変更後に少し待つ
             });
             
             window.app = new CloudSimpleText();
