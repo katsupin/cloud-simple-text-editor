@@ -860,6 +860,7 @@
                 this.isEditorInErrorState = false;
                 
                 this.initEventListeners();
+                this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
                 this.checkAuthStatus();
             }
             
@@ -2017,6 +2018,7 @@
                 // メッセージが空の場合は通知を表示しない
                 if (!message || message.trim() === '') {
                     console.warn('Empty message - skipping notification display');
+                    this.hideSyncNotification(); // 空の場合は強制的に隠す
                     return;
                 }
                 
@@ -2027,6 +2029,13 @@
                 // 要素が存在しない場合の安全性チェック
                 if (!notification || !messageEl || !actionsEl) {
                     console.error('Sync notification elements not found');
+                    return;
+                }
+                
+                // メッセージが空でないことを再確認
+                if (!message || message.trim() === '') {
+                    console.warn('Message became empty during processing - hiding notification');
+                    this.hideSyncNotification();
                     return;
                 }
                 
