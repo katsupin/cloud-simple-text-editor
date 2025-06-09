@@ -273,70 +273,89 @@
         /* モバイル用フローティングスクロールコントロール */
         .mobile-scroll-control {
             position: fixed;
-            right: 10px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
             z-index: 1000;
-            background: rgba(45, 45, 48, 0.9);
-            border: 1px solid #3e3e42;
-            border-radius: 6px;
-            padding: 8px 4px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 6px 3px;
             display: none;
             flex-direction: column;
             align-items: center;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .mobile-scroll-control.visible {
+            opacity: 1;
         }
         
         .scroll-control-btn {
-            background: #0e639c;
-            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
             border: none;
-            border-radius: 4px;
-            width: 32px;
-            height: 32px;
-            margin: 4px 0;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            margin: 3px 0;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
         }
         
         .scroll-control-btn:hover {
-            background: #1177bb;
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
         
         .scroll-control-btn:active {
-            background: #0a4a7a;
+            background: rgba(255, 255, 255, 0.4);
             transform: scale(0.95);
         }
         
         .scroll-indicator {
-            width: 20px;
-            height: 200px;
-            background: #1e1e1e;
-            border: 1px solid #3e3e42;
-            border-radius: 10px;
-            margin: 8px 0;
+            width: 4px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 6px 0;
             position: relative;
             overflow: hidden;
-        }
-        
-        .scroll-thumb {
-            width: 18px;
-            background: #0e639c;
-            border-radius: 9px;
-            position: absolute;
-            left: 0;
-            transition: all 0.1s ease;
-            min-height: 20px;
             cursor: pointer;
         }
         
+        .scroll-thumb {
+            position: absolute;
+            width: 4px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 2px;
+            left: 0;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        
         .scroll-thumb:hover {
-            background: #1177bb;
+            background: rgba(255, 255, 255, 0.8);
+            width: 6px;
+            left: -1px;
+        }
+        
+        .scroll-thumb:active,
+        .scroll-thumb.dragging {
+            background: rgba(255, 255, 255, 1);
+            cursor: grabbing;
+            width: 6px;
+            left: -1px;
         }
         
         .auth-dialog {
@@ -887,11 +906,11 @@
     
     <!-- モバイル用フローティングスクロールコントロール -->
     <div class="mobile-scroll-control" id="mobileScrollControl">
-        <button class="scroll-control-btn" id="scrollToTop" title="トップへ">↑</button>
+        <button class="scroll-control-btn" id="scrollToTop" title="トップへ">▲</button>
         <div class="scroll-indicator" id="scrollIndicator">
             <div class="scroll-thumb" id="scrollThumb"></div>
         </div>
-        <button class="scroll-control-btn" id="scrollToBottom" title="ボトムへ">↓</button>
+        <button class="scroll-control-btn" id="scrollToBottom" title="ボトムへ">▼</button>
     </div>
 
     <!-- 認証ダイアログ -->
@@ -963,6 +982,15 @@
                 document.getElementById('scrollToTop').addEventListener('click', () => this.scrollToTop());
                 document.getElementById('scrollToBottom').addEventListener('click', () => this.scrollToBottom());
                 document.getElementById('scrollIndicator').addEventListener('click', (e) => this.scrollToPosition(e));
+                
+                // ドラッグ機能のイベントリスナー
+                const scrollThumb = document.querySelector('.scroll-thumb');
+                scrollThumb.addEventListener('mousedown', (e) => this.startDrag(e));
+                scrollThumb.addEventListener('touchstart', (e) => this.startDrag(e));
+                
+                // エディタ操作時にスクロールコントロールを表示
+                document.getElementById('editor').addEventListener('focus', () => this.showScrollControl());
+                document.getElementById('editor').addEventListener('input', () => this.showScrollControl());
                 
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
@@ -2017,13 +2045,39 @@
                     
                     // スクロール位置を計算してサムの位置を更新
                     const scrollPercentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
-                    const maxThumbTop = scrollControl.clientHeight - 80; // ボタン分を除く
-                    const thumbTop = scrollPercentage * maxThumbTop + 30; // 上ボタン分のオフセット
+                    const indicatorHeight = 120; // CSSで設定した高さ
+                    const thumbHeight = 20; // CSSで設定した高さ
+                    const maxThumbTop = indicatorHeight - thumbHeight;
+                    const thumbTop = scrollPercentage * maxThumbTop;
                     
                     scrollThumb.style.top = `${thumbTop}px`;
+                    
+                    // フェードイン
+                    this.showScrollControl();
                 } else {
-                    scrollControl.style.display = 'none';
+                    this.hideScrollControl();
                 }
+            }
+            
+            showScrollControl() {
+                const scrollControl = document.querySelector('.mobile-scroll-control');
+                if (!scrollControl) return;
+                
+                scrollControl.classList.add('visible');
+                
+                // 3秒後に自動で隠す
+                clearTimeout(this.scrollControlTimer);
+                this.scrollControlTimer = setTimeout(() => {
+                    this.hideScrollControl();
+                }, 3000);
+            }
+            
+            hideScrollControl() {
+                const scrollControl = document.querySelector('.mobile-scroll-control');
+                if (!scrollControl) return;
+                
+                scrollControl.classList.remove('visible');
+                clearTimeout(this.scrollControlTimer);
             }
             
             scrollToTop() {
@@ -2044,12 +2098,12 @@
             
             scrollToPosition(event) {
                 const editor = document.getElementById('editor');
-                const scrollControl = document.querySelector('.mobile-scroll-control');
-                const rect = scrollControl.getBoundingClientRect();
+                const scrollIndicator = document.querySelector('.scroll-indicator');
+                const rect = scrollIndicator.getBoundingClientRect();
                 
-                // クリック位置を計算（上下ボタンを除く）
-                const clickY = event.clientY - rect.top - 30; // 上ボタン分のオフセット
-                const maxClickY = rect.height - 60; // 上下ボタン分を除く
+                // クリック位置を計算
+                const clickY = event.clientY - rect.top;
+                const maxClickY = rect.height;
                 
                 if (clickY >= 0 && clickY <= maxClickY) {
                     const scrollPercentage = clickY / maxClickY;
@@ -2059,7 +2113,64 @@
                         top: targetScrollTop,
                         behavior: 'smooth'
                     });
+                    
+                    this.showScrollControl();
                 }
+            }
+            
+            // ドラッグ機能
+            startDrag(event) {
+                event.preventDefault();
+                this.isDragging = true;
+                
+                const scrollThumb = document.querySelector('.scroll-thumb');
+                const scrollIndicator = document.querySelector('.scroll-indicator');
+                
+                scrollThumb.classList.add('dragging');
+                
+                // マウス/タッチ位置を取得
+                const getY = (e) => e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                const startY = getY(event);
+                const indicatorRect = scrollIndicator.getBoundingClientRect();
+                const thumbRect = scrollThumb.getBoundingClientRect();
+                const offset = startY - thumbRect.top;
+                
+                const handleMove = (e) => {
+                    if (!this.isDragging) return;
+                    
+                    e.preventDefault();
+                    const currentY = getY(e);
+                    const newThumbTop = currentY - indicatorRect.top - offset;
+                    
+                    // 範囲制限
+                    const maxThumbTop = indicatorRect.height - thumbRect.height;
+                    const clampedTop = Math.max(0, Math.min(newThumbTop, maxThumbTop));
+                    
+                    // エディタのスクロール位置を更新
+                    const scrollPercentage = clampedTop / maxThumbTop;
+                    const editor = document.getElementById('editor');
+                    const targetScrollTop = scrollPercentage * (editor.scrollHeight - editor.clientHeight);
+                    
+                    editor.scrollTop = targetScrollTop;
+                    this.showScrollControl();
+                };
+                
+                const handleEnd = () => {
+                    this.isDragging = false;
+                    scrollThumb.classList.remove('dragging');
+                    
+                    document.removeEventListener('mousemove', handleMove);
+                    document.removeEventListener('mouseup', handleEnd);
+                    document.removeEventListener('touchmove', handleMove);
+                    document.removeEventListener('touchend', handleEnd);
+                };
+                
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+                document.addEventListener('touchmove', handleMove);
+                document.addEventListener('touchend', handleEnd);
+                
+                this.showScrollControl();
             }
             
             refreshFileList() {
