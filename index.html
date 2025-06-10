@@ -166,10 +166,10 @@
         /* 不可視文字表示用のオーバーレイ */
         .whitespace-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 20px; /* エディタのpadding分を考慮 */
+            left: 20px; /* エディタのpadding分を考慮 */
+            right: 20px; /* エディタのpadding分を考慮 */
+            bottom: 20px; /* エディタのpadding分を考慮 */
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
@@ -180,10 +180,9 @@
             white-space: pre-wrap;
             overflow: hidden; /* エディタ範囲内に制限 */
             z-index: 1;
-            padding: 20px;
-            padding-bottom: calc(100vh - 250px);
+            padding: 0; /* パディングはtop/left/right/bottomで制御 */
             box-sizing: border-box;
-            max-height: 100%; /* 親要素を超えないよう制限 */
+            max-height: calc(100% - 40px); /* 上下パディング分を除く */
         }
         
         .editor-container {
@@ -195,6 +194,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            overflow: hidden; /* オーバーレイがwrapper外にはみ出ることを防ぐ */
         }
         
         .editor.show-whitespace {
@@ -768,8 +768,12 @@
             }
             
             .whitespace-overlay {
-                padding: 15px;
-                padding-bottom: calc(100vh - 200px);
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                bottom: 15px;
+                padding: 0;
+                max-height: calc(100% - 30px);
                 font-size: 16px;
                 line-height: 1.4;
             }
