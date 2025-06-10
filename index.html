@@ -1069,7 +1069,7 @@
                     this.onUserEdit(); // 重要: inputイベントでも編集検出
                 });
                 document.getElementById('editor').addEventListener('blur', () => this.saveFile());
-                document.getElementById('editor').addEventListener('keydown', () => this.onUserEdit());
+                document.getElementById('editor').addEventListener('keydown', (e) => this.handleEditorKeydown(e));
                 document.getElementById('editor').addEventListener('keyup', () => this.onUserEdit()); // キーアップも検出
                 document.getElementById('editor').addEventListener('paste', () => this.onUserEdit());
                 document.getElementById('editor').addEventListener('cut', () => this.onUserEdit()); // カット操作も検出
@@ -2322,6 +2322,108 @@
                     const scrollY = -editor.scrollTop;
                     overlay.style.transform = `translate(${scrollX}px, ${scrollY}px)`;
                 }
+            }
+            
+            handleEditorKeydown(event) {
+                // Tab/Shift+Tab でのインデント処理
+                if (event.key === 'Tab') {
+                    event.preventDefault(); // デフォルトのTab動作を無効化
+                    
+                    const editor = document.getElementById('editor');
+                    const start = editor.selectionStart;
+                    const end = editor.selectionEnd;
+                    
+                    if (start !== end) {
+                        // テキストが選択されている場合：複数行インデント
+                        if (event.shiftKey) {
+                            this.unindentSelectedLines(editor, start, end);
+                        } else {
+                            this.indentSelectedLines(editor, start, end);
+                        }
+                    } else {
+                        // 選択されていない場合：通常のTab挿入
+                        if (!event.shiftKey) {
+                            this.insertTab(editor, start);
+                        }
+                    }
+                } else {
+                    // その他のキー：編集検出
+                    this.onUserEdit();
+                }
+            }
+            
+            indentSelectedLines(editor, start, end) {
+                const text = editor.value;
+                const beforeSelection = text.substring(0, start);
+                const selection = text.substring(start, end);
+                const afterSelection = text.substring(end);
+                
+                // 選択範囲の開始行の行頭を見つける
+                const startLineBegin = beforeSelection.lastIndexOf('\n') + 1;
+                const beforeLines = text.substring(0, startLineBegin);
+                const selectedText = text.substring(startLineBegin, end);
+                
+                // 各行にインデントを追加（4スペース）
+                const indentedLines = selectedText.split('\n').map(line => {
+                    return line.length > 0 ? '    ' + line : line; // 空行はインデントしない
+                }).join('\n');
+                
+                // テキストを更新
+                const newText = beforeLines + indentedLines + afterSelection;
+                editor.value = newText;
+                
+                // 選択範囲を調整（インデント分を考慮）
+                const addedSpaces = (selectedText.split('\n').length - (selectedText.endsWith('\n') ? 1 : 0)) * 4;
+                editor.setSelectionRange(startLineBegin, end + addedSpaces);
+                
+                this.onEditorChange();
+                this.onUserEdit();
+            }
+            
+            unindentSelectedLines(editor, start, end) {
+                const text = editor.value;
+                const beforeSelection = text.substring(0, start);
+                const selection = text.substring(start, end);
+                const afterSelection = text.substring(end);
+                
+                // 選択範囲の開始行の行頭を見つける
+                const startLineBegin = beforeSelection.lastIndexOf('\n') + 1;
+                const beforeLines = text.substring(0, startLineBegin);
+                const selectedText = text.substring(startLineBegin, end);
+                
+                // 各行からインデントを削除（最大4スペース）
+                const unindentedLines = selectedText.split('\n').map(line => {
+                    if (line.startsWith('    ')) {
+                        return line.substring(4); // 4スペース削除
+                    } else if (line.startsWith('\t')) {
+                        return line.substring(1); // タブ削除
+                    } else if (line.match(/^ {1,3}/)) {
+                        return line.replace(/^ {1,3}/, ''); // 1-3スペース削除
+                    }
+                    return line;
+                }).join('\n');
+                
+                // テキストを更新
+                const newText = beforeLines + unindentedLines + afterSelection;
+                editor.value = newText;
+                
+                // 選択範囲を調整（削除されたスペース分を考慮）
+                const removedChars = selectedText.length - unindentedLines.length;
+                const newEnd = Math.max(startLineBegin, end - removedChars);
+                editor.setSelectionRange(startLineBegin, newEnd);
+                
+                this.onEditorChange();
+                this.onUserEdit();
+            }
+            
+            insertTab(editor, position) {
+                const text = editor.value;
+                const newText = text.substring(0, position) + '    ' + text.substring(position);
+                editor.value = newText;
+                editor.setSelectionRange(position + 4, position + 4);
+                
+                this.onEditorChange();
+                this.onUserEdit();
             }
             
             startDrag(event) {
