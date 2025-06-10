@@ -178,11 +178,12 @@
             font-weight: bold; /* 太字で視認性向上 */
             text-shadow: 0 0 2px rgba(100, 180, 255, 0.3); /* 微妙なグロー効果 */
             white-space: pre-wrap;
-            overflow: visible;
+            overflow: hidden; /* エディタ範囲内に制限 */
             z-index: 1;
             padding: 20px;
             padding-bottom: calc(100vh - 250px);
             box-sizing: border-box;
+            max-height: 100%; /* 親要素を超えないよう制限 */
         }
         
         .editor-container {
@@ -2259,28 +2260,31 @@
                 this.showWhitespace = !this.showWhitespace;
                 
                 if (this.showWhitespace) {
-                    console.log('🔄 Enabling whitespace display');
                     toggle.classList.add('active');
                     overlay.classList.remove('hidden');
                     editor.classList.add('show-whitespace');
                     
-                    // 強制表示設定
+                    // 表示設定
                     overlay.style.display = 'block';
                     overlay.style.visibility = 'visible';
-                    overlay.style.zIndex = '10';
-                    overlay.style.overflow = 'visible';
+                    overlay.style.zIndex = '1';
                     overlay.style.pointerEvents = 'none';
                     
                     this.updateWhitespaceOverlay();
                 } else {
-                    console.log('🔄 Disabling whitespace display');
                     toggle.classList.remove('active');
                     overlay.classList.add('hidden');
                     editor.classList.remove('show-whitespace');
                     
-                    // デバッグスタイルをクリア
+                    // 完全なクリア処理
+                    overlay.textContent = '';
+                    overlay.style.display = 'none';
+                    overlay.style.visibility = 'hidden';
+                    overlay.style.transform = '';
                     overlay.style.border = '';
                     overlay.style.backgroundColor = '';
+                    overlay.style.overflow = '';
+                    overlay.style.zIndex = '';
                 }
             }
             
@@ -2291,26 +2295,15 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                console.log('🔍 Debug: updateWhitespaceOverlay called');
-                console.log('📝 Editor text length:', text.length);
-                console.log('📱 Overlay element:', overlay);
-                console.log('📐 Overlay computed style:', getComputedStyle(overlay));
-                
-                // 不可視文字を視覚化（より視認性の高い記号を使用）
+                // 不可視文字を視覚化
                 const visualizedText = text
                     .replace(/ /g, '·')  // 通常スペース → 中点
                     .replace(/\t/g, '→') // タブ → 矢印
                     .replace(/　/g, '□') // 全角スペース → 四角
-                    .replace(/\n/g, '¶\n'); // 改行 → パラグラフ記号+改行（より見やすい）
-                
-                console.log('✨ Visualized text sample:', visualizedText.substring(0, 50));
+                    .replace(/\n/g, '¶\n'); // 改行 → パラグラフ記号+改行
                 
                 overlay.textContent = visualizedText;
                 this.syncOverlayScroll();
-                
-                // デバッグ用スタイル強制適用
-                overlay.style.border = '2px solid red'; // 一時的な可視化
-                overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // 半透明赤背景
             }
             
             syncOverlayScroll() {
@@ -2320,13 +2313,10 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 
                 if (overlay && editor) {
-                    overlay.scrollTop = editor.scrollTop;
-                    overlay.scrollLeft = editor.scrollLeft;
-                    
-                    console.log('🔄 Scroll sync:', {
-                        editorScrollTop: editor.scrollTop,
-                        overlayScrollTop: overlay.scrollTop
-                    });
+                    // スクロール位置を transform で制御
+                    const scrollX = -editor.scrollLeft;
+                    const scrollY = -editor.scrollTop;
+                    overlay.style.transform = `translate(${scrollX}px, ${scrollY}px)`;
                 }
             }
             
