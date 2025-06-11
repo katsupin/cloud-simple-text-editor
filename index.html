@@ -386,10 +386,10 @@
         /* 不可視文字表示用のオーバーレイ */
         .whitespace-overlay {
             position: absolute;
-            top: 20px; /* エディタのpadding分を考慮 */
-            left: 20px; /* エディタのpadding分を考慮 */
-            right: 20px; /* エディタのpadding分を考慮 */
-            bottom: 20px; /* エディタのpadding分を考慮 */
+            top: 20px;
+            left: 20px;
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
@@ -3174,10 +3174,15 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 
                 if (overlay && editor) {
-                    // スクロール位置を transform で制御
-                    const scrollX = -editor.scrollLeft;
-                    const scrollY = -editor.scrollTop;
-                    overlay.style.transform = `translate(${scrollX}px, ${scrollY}px)`;
+                    // エディタと完全に同期
+                    overlay.scrollTop = editor.scrollTop;
+                    overlay.scrollLeft = editor.scrollLeft;
+                    
+                    // デバッグ用
+                    console.log('🔄 Scroll sync:', { 
+                        editorScroll: { top: editor.scrollTop, left: editor.scrollLeft },
+                        overlayVisible: !overlay.classList.contains('hidden')
+                    });
                 }
             }
             
