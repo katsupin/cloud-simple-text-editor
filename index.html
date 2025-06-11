@@ -392,7 +392,7 @@
             bottom: 20px;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            color: #d4d4d4 !important;
+            color: rgba(100, 180, 255, 0.8) !important;
             font-weight: normal !important;
             font-size: 14px !important;
             line-height: 1.5 !important;
@@ -425,7 +425,7 @@
         .editor.show-whitespace {
             position: relative;
             z-index: 2;
-            background: rgba(30, 30, 30, 0.95); /* わずかに透明にしてオーバーレイを見やすく */
+            background: rgba(30, 30, 30, 0.3); /* 透明度を上げてオーバーレイを見やすく */
         }
         
         .whitespace-overlay.hidden {
@@ -3179,26 +3179,35 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                // HTMLを使って不可視文字のみに色を付ける
+                // シンプルなアプローチ：エディタの背景を半透明にして、オーバーレイで不可視文字を表示
                 const lines = text.split('\n');
-                const visualizedHTML = lines.map((line, index) => {
-                    let processedLine = line
-                        .replace(/&/g, '&amp;')
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/ /g, '<span style="color: rgba(100, 180, 255, 0.8);">·</span>')
-                        .replace(/\t/g, '<span style="color: rgba(100, 180, 255, 0.8);">→</span>')
-                        .replace(/　/g, '<span style="color: rgba(100, 180, 255, 0.8);">□</span>');
+                const visualizedText = lines.map((line, index) => {
+                    let processedLine = '';
+                    
+                    // 各文字を処理
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === ' ') {
+                            processedLine += '·';
+                        } else if (char === '\t') {
+                            processedLine += '→';
+                        } else if (char === '　') {
+                            processedLine += '□';
+                        } else {
+                            // 通常文字は同じ文字を保持（色で制御）
+                            processedLine += char;
+                        }
+                    }
                     
                     // 最後の行以外は¶を追加
                     if (index < lines.length - 1) {
-                        processedLine += '<span style="color: rgba(100, 180, 255, 0.8);">¶</span>';
+                        processedLine += '¶';
                     }
                     
                     return processedLine;
-                }).join('<br>');
+                }).join('\n');
                 
-                overlay.innerHTML = visualizedHTML;
+                overlay.textContent = visualizedText;
                 this.syncOverlayScroll();
             }
             
