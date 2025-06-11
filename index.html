@@ -3159,8 +3159,9 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                // 不可視文字を視覚化
+                // 不可視文字のみを視覚化（通常文字は透明にする）
                 const visualizedText = text
+                    .replace(/[^\s\n\t　]/g, '\u2800') // 通常文字を透明なブライユ文字に置換
                     .replace(/ /g, '·')  // 通常スペース → 中点
                     .replace(/\t/g, '→') // タブ → 矢印
                     .replace(/　/g, '□') // 全角スペース → 四角
