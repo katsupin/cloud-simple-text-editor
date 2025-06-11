@@ -1470,6 +1470,10 @@
                 // 設定の初期化
                 this.settings = this.loadSettings();
                 
+                // showWhitespaceの初期化を設定から取得（フォールバック付き）
+                this.showWhitespace = this.settings?.showWhitespace ?? false;
+                console.log('🔧 showWhitespace initialized:', this.showWhitespace, 'from settings:', this.settings?.showWhitespace);
+                
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
                 this.checkAuthStatus();
@@ -1819,7 +1823,8 @@
             loadSettings() {
                 const stored = localStorage.getItem('cloudSimpleTextSettings');
                 const defaults = {
-                    autoScrollToBottom: false
+                    autoScrollToBottom: false,
+                    showWhitespace: false
                 };
                 
                 if (stored) {
@@ -3110,6 +3115,10 @@
                 const editor = document.getElementById('editor');
                 
                 this.showWhitespace = !this.showWhitespace;
+                
+                // 設定を保存
+                this.settings.showWhitespace = this.showWhitespace;
+                this.saveSettings();
                 
                 if (this.showWhitespace) {
                     toggle.classList.add('active');
