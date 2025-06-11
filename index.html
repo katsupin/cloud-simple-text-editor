@@ -1611,14 +1611,26 @@
                 const fileList = document.getElementById('fileList');
                 fileList.innerHTML = '';
                 
+                console.log('🗂️ Rendering file list...');
+                console.log('📁 Folders count:', this.folders ? this.folders.length : 0);
+                console.log('📄 Files count:', this.files ? this.files.length : 0);
+                
                 // フォルダを先に表示
-                if (this.folders) {
+                if (this.folders && this.folders.length > 0) {
+                    console.log('📁 Rendering folders:', this.folders);
                     this.folders.forEach(folder => {
                         const item = document.createElement('div');
                         item.className = 'folder-item';
                         item.innerHTML = `<span class="folder-icon">📁</span><span class="folder-name">${folder.name}</span>`;
                         item.dataset.folderName = folder.name;
                         item.dataset.folderPath = folder.path;
+                        
+                        console.log('📁 Created folder item:', {
+                            name: folder.name,
+                            path: folder.path,
+                            className: item.className,
+                            dataset: item.dataset
+                        });
                         
                         // フォルダクリックイベント（将来的に展開機能を実装）
                         item.addEventListener('click', (e) => {
@@ -1629,6 +1641,8 @@
                         
                         fileList.appendChild(item);
                     });
+                } else {
+                    console.log('⚠️ No folders to display');
                 }
                 
                 // ファイルを表示
@@ -2153,21 +2167,33 @@
                 
                 // ログインしていない場合は表示しない
                 if (!this.githubToken || !this.currentRepo) {
+                    console.log('⚠️ Context menu blocked: not logged in');
                     return;
                 }
                 
-                // デバッグ情報
+                // 詳細デバッグ情報
                 console.log('🖱️ Context menu triggered on:', event.target);
                 console.log('🖱️ Event target tagName:', event.target.tagName);
                 console.log('🖱️ Event target className:', event.target.className);
+                console.log('🖱️ Event target parentElement:', event.target.parentElement);
+                console.log('🖱️ Event target dataset:', event.target.dataset);
                 
                 // クリック対象を判定
                 const fileItem = event.target.closest('.file-item');
                 const folderItem = event.target.closest('.folder-item');
                 
+                console.log('🔍 Closest elements found:');
+                console.log('  📄 fileItem:', fileItem);
+                console.log('  📁 folderItem:', folderItem);
+                
                 if (folderItem) {
                     // フォルダ項目を右クリック → フォルダ操作メニュー
                     console.log('📂 Showing folder context menu for:', folderItem.dataset.folderName);
+                    console.log('📂 Folder item details:', {
+                        className: folderItem.className,
+                        dataset: folderItem.dataset,
+                        innerHTML: folderItem.innerHTML
+                    });
                     this.contextMenuTarget = {
                         type: 'folder',
                         name: folderItem.dataset.folderName,
@@ -2198,21 +2224,47 @@
             }
             
             showFolderContextMenu(event) {
+                console.log('📂 showFolderContextMenu called');
                 const contextMenu = document.getElementById('folderContextMenu');
+                console.log('📂 Folder context menu element:', contextMenu);
+                if (!contextMenu) {
+                    console.error('❌ Folder context menu element not found!');
+                    return;
+                }
                 this.positionContextMenu(contextMenu, event);
             }
             
             showFileContextMenu(event) {
+                console.log('📄 showFileContextMenu called');
                 const contextMenu = document.getElementById('fileContextMenu');
+                console.log('📄 File context menu element:', contextMenu);
+                if (!contextMenu) {
+                    console.error('❌ File context menu element not found!');
+                    return;
+                }
                 this.positionContextMenu(contextMenu, event);
             }
             
             positionContextMenu(contextMenu, event) {
+                console.log('🎯 Positioning context menu:', {
+                    menu: contextMenu,
+                    mouseX: event.pageX,
+                    mouseY: event.pageY,
+                    currentClasses: contextMenu.className
+                });
+                
                 contextMenu.classList.remove('hidden');
                 
                 // マウス位置にメニューを表示
                 contextMenu.style.left = event.pageX + 'px';
                 contextMenu.style.top = event.pageY + 'px';
+                
+                console.log('🎯 Context menu positioned:', {
+                    left: contextMenu.style.left,
+                    top: contextMenu.style.top,
+                    display: contextMenu.style.display,
+                    classList: contextMenu.classList.toString()
+                });
                 
                 // 画面からはみ出さないよう調整
                 const rect = contextMenu.getBoundingClientRect();
@@ -2222,6 +2274,8 @@
                 if (rect.bottom > window.innerHeight) {
                     contextMenu.style.top = (event.pageY - rect.height) + 'px';
                 }
+                
+                console.log('✅ Context menu should now be visible');
             }
             
             hideContextMenu() {
