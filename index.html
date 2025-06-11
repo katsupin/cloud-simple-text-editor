@@ -1238,7 +1238,7 @@
     <div class="header">
         <div class="header-top">
             <button class="mobile-menu-btn" id="mobileMenuBtn" title="ファイル一覧">☰</button>
-            <h1>📝 CST</h1>
+            <h1>📝 PlainHub</h1>
             <button class="mobile-auth-toggle" id="mobileAuthToggle" title="設定メニュー">⚙️</button>
         </div>
         <div class="auth-controls" id="authControls">
@@ -1418,7 +1418,7 @@
             }
         };
         
-        class CloudSimpleText {
+        class PlainHub {
             constructor() {
                 this.githubToken = null;
                 this.currentRepo = null;
@@ -4107,7 +4107,7 @@
                 }, 100); // オリエンテーション変更後に少し待つ
             });
             
-            window.app = new CloudSimpleText();
+            window.app = new PlainHub();
             console.log('✅ App initialized successfully');
             
             // バージョン情報の初期化
