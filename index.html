@@ -392,11 +392,11 @@
             bottom: 20px;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            color: rgba(100, 180, 255, 0.8) !important;
-            font-weight: bold !important;
+            color: #d4d4d4 !important;
+            font-weight: normal !important;
             font-size: 14px !important;
             line-height: 1.5 !important;
-            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3) !important;
+            text-shadow: none !important;
             user-select: none;
             transform-origin: top left;
             white-space: pre-wrap !important;
@@ -3179,24 +3179,26 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                // 行ごとに処理して改行位置を保持
+                // HTMLを使って不可視文字のみに色を付ける
                 const lines = text.split('\n');
-                const visualizedText = lines.map((line, index) => {
+                const visualizedHTML = lines.map((line, index) => {
                     let processedLine = line
-                        .replace(/[^\s\n\t　]/g, '\u2800') // 通常文字を透明なブライユ文字に置換
-                        .replace(/ /g, '·')  // 通常スペース → 中点
-                        .replace(/\t/g, '→') // タブ → 矢印
-                        .replace(/　/g, '　'); // 全角スペース → そのまま（幅を保持）
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/ /g, '<span style="color: rgba(100, 180, 255, 0.8);">·</span>')
+                        .replace(/\t/g, '<span style="color: rgba(100, 180, 255, 0.8);">→</span>')
+                        .replace(/　/g, '<span style="color: rgba(100, 180, 255, 0.8);">□</span>');
                     
                     // 最後の行以外は¶を追加
                     if (index < lines.length - 1) {
-                        processedLine += '¶';
+                        processedLine += '<span style="color: rgba(100, 180, 255, 0.8);">¶</span>';
                     }
                     
                     return processedLine;
                 }).join('\n');
                 
-                overlay.textContent = visualizedText;
+                overlay.innerHTML = visualizedHTML;
                 this.syncOverlayScroll();
             }
             
