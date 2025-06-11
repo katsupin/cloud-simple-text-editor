@@ -425,7 +425,7 @@
         .editor.show-whitespace {
             position: relative;
             z-index: 2;
-            background: rgba(30, 30, 30, 0.3); /* 透明度を上げてオーバーレイを見やすく */
+            background: rgba(30, 30, 30, 0.95); /* わずかに透明にしてオーバーレイを見やすく */
         }
         
         .whitespace-overlay.hidden {
@@ -3194,8 +3194,8 @@
                         } else if (char === '　') {
                             processedLine += '＿';  // 全角アンダーバー（幅が同じ）
                         } else {
-                            // 通常文字は同じ文字を保持（色で制御）
-                            processedLine += char;
+                            // 通常文字は半角スペースに置換（透明になる）
+                            processedLine += ' ';
                         }
                     }
                     
