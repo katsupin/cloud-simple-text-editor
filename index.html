@@ -3185,7 +3185,7 @@
                     let processedLine = line
                         .replace(/ /g, '·')  // 通常スペース → 中点
                         .replace(/\t/g, '→') // タブ → 矢印
-                        .replace(/　/g, '□'); // 全角スペース → 四角
+                        .replace(/　/g, '　'); // 全角スペース → そのまま（幅を保持）
                     
                     // 空行でない場合、または最後の行でない場合に¶を追加
                     if (line.length > 0 && index < lines.length - 1) {
