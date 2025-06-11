@@ -759,6 +759,13 @@
             font-weight: bold;
         }
         
+        #fileListHeader .repo-name {
+            font-size: 0.9em;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-left: 8px;
+        }
+        
         .repo-description {
             font-size: 12px;
             color: #888888;
@@ -1251,7 +1258,7 @@
     
     <div class="main-container">
         <div class="sidebar">
-            <h3 id="fileListHeader">📁</h3>
+            <h3 id="fileListHeader">📁 <span id="repoName" class="repo-name"></span></h3>
             <div class="search-container">
                 <div class="search-mode-toggle">
                     <input type="radio" id="searchModeName" name="searchMode" value="name" checked>
@@ -1604,6 +1611,9 @@
                             console.log('✅ Token is valid, auto-login successful');
                             this.updateAuthUI(true);
                             
+                            // リポジトリ名を表示
+                            this.updateRepoNameDisplay();
+                            
                             // リポジトリ情報も復元
                             if (this.currentRepo) {
                                 console.log('🔄 Loading repository files automatically...');
@@ -1911,6 +1921,7 @@
                     this.currentRepo = this.selectedRepo.full_name;
                     this.setStoredRepo(this.currentRepo);
                     this.setStoredSelectedRepo(this.selectedRepo); // 選択されたリポジトリ情報も保存
+                    this.updateRepoNameDisplay(); // リポジトリ名を表示
                     this.hideAuthDialog();
                     this.updateAuthUI(true);
                     await this.loadRepositoryFiles();
@@ -1996,6 +2007,8 @@
                 this.clearStoredAuth();
                 this.stopSyncMonitoring();
                 this.hideSyncNotification();
+                // リポジトリ名表示をクリア
+                document.getElementById('repoName').textContent = '';
                 console.log('✅ Logout complete');
             }
             
@@ -2027,6 +2040,16 @@
                 }
             }
             
+            updateRepoNameDisplay() {
+                const repoNameElement = document.getElementById('repoName');
+                if (this.currentRepo && repoNameElement) {
+                    // username/repo-name の形式から repo-name だけを表示
+                    const repoName = this.currentRepo.split('/').pop();
+                    repoNameElement.textContent = repoName;
+                    repoNameElement.title = this.currentRepo; // フルパスをツールチップで表示
+                }
+            }
+            
             async loadRepositoryFiles() {
                 this.showLoading(true);
                 try {
@@ -2039,6 +2062,8 @@
                     
                     this.currentRepo = repoName;
                     localStorage.setItem('currentRepo', repoName);
+                    // リポジトリ名を表示
+                    this.updateRepoNameDisplay();
                     const response = await fetch(`https://api.github.com/repos/${repoName}/contents`, {
                         headers: {
                             'Authorization': `token ${this.githubToken}`,
