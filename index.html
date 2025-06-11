@@ -93,8 +93,54 @@
             background: rgba(255, 255, 255, 0.1);
         }
         
+        .search-container {
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 8px 30px 8px 12px;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .search-input:focus {
+            border-color: #0e639c;
+            box-shadow: 0 0 0 1px rgba(14, 99, 156, 0.3);
+        }
+        
+        .search-input::placeholder {
+            color: #888;
+        }
+        
+        .clear-search {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        
+        .clear-search:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #d4d4d4;
+        }
+        
         .file-list {
-            margin-top: 20px;
+            margin-top: 10px;
         }
         
         .file-item, .folder-item {
@@ -137,6 +183,22 @@
         
         .file-item {
             color: #cccccc;
+        }
+        
+        .search-results-info {
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #888;
+            border-bottom: 1px solid #3e3e42;
+            margin-bottom: 8px;
+            background: rgba(14, 99, 156, 0.1);
+        }
+        
+        .no-results {
+            padding: 16px 12px;
+            text-align: center;
+            color: #888;
+            font-style: italic;
         }
         
         .editor-container {
@@ -1010,6 +1072,10 @@
     <div class="main-container">
         <div class="sidebar">
             <h3 id="fileListHeader">📁 ファイル</h3>
+            <div class="search-container">
+                <input type="text" id="fileSearch" class="search-input" placeholder="ファイル名で検索..." autocomplete="off">
+                <button id="clearSearch" class="clear-search hidden" title="検索をクリア">✕</button>
+            </div>
             <div class="file-list" id="fileList">
                 <div class="file-item">ファイルを読み込み中...</div>
             </div>
@@ -1118,7 +1184,7 @@
     
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.2231
+        v2.1.20250611.2327
     </div>
 
     <script>
@@ -1128,14 +1194,14 @@
                 major: 2,
                 minor: 1,
                 build: 20250611,
-                revision: 2231,
+                revision: 2327,
                 get fullVersion() {
                     return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
                 },
                 get displayVersion() {
                     return this.fullVersion;
                 },
-                buildTime: '2025-06-11 13:31:41',
+                buildTime: '2025-06-11 14:27:16',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
                 }
@@ -1161,6 +1227,9 @@
                 this.isUserCurrentlyEditing = false;
                 this.scrollControlVisible = false;
                 this.contextMenuTarget = null;
+                this.allFiles = []; // 全ファイルリスト（検索用）
+                this.allFolders = []; // 全フォルダリスト（検索用）
+                this.currentSearchTerm = '';
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
@@ -1216,6 +1285,10 @@
                 // コンテキストメニューのイベントリスナー
                 document.getElementById('fileList').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
                 document.getElementById('fileListHeader').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+                
+                // 検索機能のイベントリスナー
+                document.getElementById('fileSearch').addEventListener('input', (e) => this.handleSearch(e));
+                document.getElementById('clearSearch').addEventListener('click', () => this.clearSearch());
                 
                 // フォルダコンテキストメニューのイベントリスナー
                 document.getElementById('createFileItem').addEventListener('click', () => this.createNewFile());
@@ -1628,7 +1701,8 @@
                         });
                         
                         // フォルダとファイルを分離
-                        this.folders = items.filter(item => item.type === 'dir');
+                        this.allFolders = items.filter(item => item.type === 'dir');
+                        this.folders = [...this.allFolders];
                         
                         // より柔軟なファイルフィルタリング
                         this.files = items.filter(item => {
@@ -1658,6 +1732,9 @@
                             // その他のファイルは表示（設定ファイルなど）
                             return true;
                         });
+                        
+                        // 検索用に全ファイルリストを保存
+                        this.allFiles = [...this.files];
                             
                         console.log('📁 Detected folders:', this.folders.map(f => f.name));
                         console.log('📄 Detected files:', this.files.map(f => f.name));
@@ -1689,6 +1766,23 @@
                 console.log('🗂️ Rendering file list...');
                 console.log('📁 Folders count:', this.folders ? this.folders.length : 0);
                 console.log('📄 Files count:', this.files ? this.files.length : 0);
+                
+                // 検索結果表示
+                if (this.currentSearchTerm) {
+                    const totalResults = (this.folders?.length || 0) + (this.files?.length || 0);
+                    const searchInfo = document.createElement('div');
+                    searchInfo.className = 'search-results-info';
+                    searchInfo.innerHTML = `🔍 "${this.currentSearchTerm}" の検索結果: ${totalResults}件`;
+                    fileList.appendChild(searchInfo);
+                    
+                    if (totalResults === 0) {
+                        const noResults = document.createElement('div');
+                        noResults.className = 'no-results';
+                        noResults.textContent = '該当するファイルが見つかりません';
+                        fileList.appendChild(noResults);
+                        return;
+                    }
+                }
                 
                 // フォルダを先に表示
                 if (this.folders && this.folders.length > 0) {
@@ -3319,6 +3413,57 @@
                     // 最後の手段として基本的なatobを使用
                     return atob(base64String);
                 }
+            }
+            
+            // 検索機能
+            handleSearch(event) {
+                const searchTerm = event.target.value.trim();
+                this.currentSearchTerm = searchTerm;
+                
+                console.log('🔍 Search term:', searchTerm);
+                
+                // 検索語が空の場合は全ファイルを表示
+                if (!searchTerm) {
+                    this.folders = [...this.allFolders];
+                    this.files = [...this.allFiles];
+                    document.getElementById('clearSearch').classList.add('hidden');
+                } else {
+                    // 大文字小文字を区別しない部分一致検索
+                    const lowerSearchTerm = searchTerm.toLowerCase();
+                    
+                    this.folders = this.allFolders.filter(folder =>
+                        folder.name.toLowerCase().includes(lowerSearchTerm)
+                    );
+                    
+                    this.files = this.allFiles.filter(file =>
+                        file.name.toLowerCase().includes(lowerSearchTerm)
+                    );
+                    
+                    document.getElementById('clearSearch').classList.remove('hidden');
+                    
+                    console.log('🔍 Filtered folders:', this.folders.map(f => f.name));
+                    console.log('🔍 Filtered files:', this.files.map(f => f.name));
+                }
+                
+                this.renderFileList();
+            }
+            
+            clearSearch() {
+                const searchInput = document.getElementById('fileSearch');
+                searchInput.value = '';
+                this.currentSearchTerm = '';
+                
+                // 全ファイルを復元
+                this.folders = [...this.allFolders];
+                this.files = [...this.allFiles];
+                
+                document.getElementById('clearSearch').classList.add('hidden');
+                
+                console.log('🔍 Search cleared');
+                this.renderFileList();
+                
+                // 検索入力欄にフォーカス
+                searchInput.focus();
             }
             
             // UTF-8対応のBase64エンコード
