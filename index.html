@@ -81,7 +81,7 @@
         
         .main-container {
             display: flex;
-            height: calc(100vh - 60px);
+            height: calc(100vh - 84px); /* ヘッダー60px + フッター24px */
         }
         
         .sidebar {
@@ -436,19 +436,54 @@
             align-items: center;
         }
         
-        .version-info {
+        .app-footer {
             position: fixed;
-            bottom: 5px;
-            right: 10px;
-            font-size: 10px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: rgba(30, 30, 30, 0.95);
+            border-top: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 11px;
+            color: #888;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .footer-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .footer-right {
+            display: flex;
+            align-items: center;
+        }
+        
+        .company-link {
+            color: #0e639c;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .company-link:hover {
+            color: #58a6ff;
+            text-decoration: underline;
+        }
+        
+        .version-info {
+            font-family: monospace;
             color: #666;
             background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
+            padding: 2px 8px;
             border-radius: 3px;
-            z-index: 1000;
-            font-family: monospace;
-            user-select: text;
             cursor: pointer;
+            user-select: text;
+            transition: all 0.3s;
         }
         
         .version-info:hover {
@@ -1398,10 +1433,6 @@
         </div>
     </div>
     
-    <!-- バージョン情報 -->
-    <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.249
-    </div>
 
     <script>
         // アプリケーション設定
@@ -4513,8 +4544,15 @@
     </script>
     
     <!-- Footer -->
-    <div style="position: fixed; bottom: 5px; right: 10px; font-size: 11px; color: #666; z-index: 1000;">
-        Developed by <a href="https://ricrio.jp/" target="_blank" style="color: #0e639c; text-decoration: none;">ricrio Inc.</a>
+    <div class="app-footer">
+        <div class="footer-left">
+            Developed by <a href="https://ricrio.jp/" target="_blank" class="company-link">ricrio Inc.</a>
+        </div>
+        <div class="footer-right">
+            <div class="version-info" id="versionInfo" title="クリックで詳細表示">
+                v2.1.20250611.249
+            </div>
+        </div>
     </div>
 </body>
 </html>
