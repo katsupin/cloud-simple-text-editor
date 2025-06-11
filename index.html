@@ -1035,10 +1035,6 @@
                     <span id="perfMemory">メモリ: 0 MB</span>
                     <span id="perfLoad">読み込み時間: 0ms</span>
                 </div>
-                <div class="deploy-info" style="font-size: 10px; opacity: 0.7;">
-                    <span id="buildHash">Build: 297eb26</span> | 
-                    <span id="buildTime">2025-06-11 12:30</span>
-                </div>
             </div>
         </div>
     </div>
@@ -1122,10 +1118,30 @@
     
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1 (297eb26)
+        v2.1.20250611.2231
     </div>
 
     <script>
+        // アプリケーション設定
+        const APP_CONFIG = {
+            version: {
+                major: 2,
+                minor: 1,
+                build: 20250611,
+                revision: 2231,
+                get fullVersion() {
+                    return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
+                },
+                get displayVersion() {
+                    return this.fullVersion;
+                },
+                buildTime: '2025-06-11 13:31:41',
+                get buildTimeShort() {
+                    return this.buildTime.split(' ')[1].substring(0, 5);
+                }
+            }
+        };
+        
         class CloudSimpleText {
             constructor() {
                 this.githubToken = null;
@@ -3362,18 +3378,24 @@
             // バージョン情報の初期化
             const versionInfo = document.getElementById('versionInfo');
             if (versionInfo) {
+                // バージョン表示を設定から取得
+                versionInfo.textContent = APP_CONFIG.version.displayVersion;
+                
                 versionInfo.addEventListener('click', () => {
                     const buildInfo = {
-                        version: 'v2.1',
-                        commit: '297eb26',
-                        fullCommit: '297eb2687598a617fa36b67d031c90c413e2d973',
-                        buildTime: '2025-06-11 12:30:59 +0900',
-                        features: ['フォルダ構造サポート', 'コンテキストメニュー改善', 'バージョン表示機能', 'デプロイ追跡機能']
+                        version: APP_CONFIG.version.fullVersion,
+                        buildTime: APP_CONFIG.version.buildTime,
+                        features: [
+                            'フォルダ構造サポート', 
+                            'コンテキストメニュー改善', 
+                            'ファイルフィルタリング改善',
+                            'バージョン管理統一',
+                            'ファイル検索機能（開発中）'
+                        ]
                     };
                     
                     alert(`Cloud Simple Text\n\n` +
                           `バージョン: ${buildInfo.version}\n` +
-                          `コミット: ${buildInfo.commit}\n` +
                           `ビルド時刻: ${buildInfo.buildTime}\n\n` +
                           `主な機能:\n${buildInfo.features.map(f => `• ${f}`).join('\n')}\n\n` +
                           `GitHub: https://github.com/katsupin/cloud-simple-text-editor`);
