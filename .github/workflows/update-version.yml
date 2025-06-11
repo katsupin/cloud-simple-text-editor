@@ -1,0 +1,42 @@
+name: Update Version Info
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Update version info in HTML
+      run: |
+        # Get commit info
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        FULL_COMMIT_HASH=$(git rev-parse HEAD)
+        BUILD_TIME=$(date '+%Y-%m-%d %H:%M')
+        BUILD_TIME_FULL=$(date '+%Y-%m-%d %H:%M:%S %z')
+        
+        echo "Updating to commit: $COMMIT_HASH"
+        echo "Build time: $BUILD_TIME_FULL"
+        
+        # Update HTML file
+        sed -i "s/Build: [a-f0-9]\{7\}/Build: $COMMIT_HASH/g" index.html
+        sed -i "s/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}/$BUILD_TIME/g" index.html
+        sed -i "s/v2\.1 ([a-f0-9]\{7\})/v2.1 ($COMMIT_HASH)/g" index.html
+        sed -i "s/commit: '[a-f0-9]\{7\}'/commit: '$COMMIT_HASH'/g" index.html
+        sed -i "s/fullCommit: '[a-f0-9]\{40\}'/fullCommit: '$FULL_COMMIT_HASH'/g" index.html
+        sed -i "s/buildTime: '[^']*'/buildTime: '$BUILD_TIME_FULL'/g" index.html
+        
+        # Check if there are changes
+        if git diff --exit-code index.html > /dev/null; then
+          echo "No version changes needed"
+        else
+          echo "Version info updated"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add index.html
+          git commit -m "Auto-update version info to $COMMIT_HASH [skip ci]"
+          git push
+        fi
