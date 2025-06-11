@@ -2069,15 +2069,23 @@
                     return;
                 }
                 
+                // デバッグ情報
+                console.log('🖱️ Context menu triggered on:', event.target);
+                console.log('🖱️ Event target tagName:', event.target.tagName);
+                console.log('🖱️ Event target className:', event.target.className);
+                
                 // クリック対象がファイル項目かどうかを判定
                 const fileItem = event.target.closest('.file-item');
+                console.log('📁 Closest file-item:', fileItem);
                 
                 if (fileItem) {
                     // ファイル項目を右クリック → ファイル操作メニュー
+                    console.log('📄 Showing file context menu for:', fileItem.textContent.trim());
                     this.selectedFileName = fileItem.textContent.trim();
                     this.showFileContextMenu(event);
                 } else {
                     // 空白部分を右クリック → フォルダ操作メニュー
+                    console.log('📂 Showing folder context menu');
                     this.showFolderContextMenu(event);
                 }
             }
