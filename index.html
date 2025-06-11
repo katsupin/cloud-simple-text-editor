@@ -1383,7 +1383,7 @@
     
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.34
+        v2.1.20250611.56
     </div>
 
     <script>
@@ -1393,17 +1393,18 @@
                 major: 2,
                 minor: 1,
                 build: 20250611,
-                revision: 34,
+                revision: 56,
                 get fullVersion() {
                     return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
                 },
                 get displayVersion() {
                     return this.fullVersion;
                 },
-                buildTime: '2025-06-11 15:34:07',
+                buildTime: '2025-06-11 15:56:47',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
-                }
+                },
+                commitHash: '18eb252'
             }
         };
         
@@ -3988,6 +3989,63 @@
                 return escapedText.replace(regex, '<mark>$1</mark>');
             }
             
+            // コード完全性チェック
+            async verifyCodeIntegrity() {
+                try {
+                    // 現在実行中のHTMLを取得
+                    const response = await fetch(window.location.href);
+                    const currentCode = await response.text();
+                    
+                    // SHA-256ハッシュを計算
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(currentCode);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    const currentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    
+                    // GitHubリポジトリから最新のファイルを取得
+                    const repoUrl = 'https://api.github.com/repos/katsupin/cloud-simple-text-editor/contents/index.html';
+                    const repoResponse = await fetch(repoUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (repoResponse.ok) {
+                        const repoData = await repoResponse.json();
+                        const repoContent = atob(repoData.content.replace(/\n/g, ''));
+                        
+                        // リポジトリ版のハッシュを計算
+                        const repoEncoder = new TextEncoder();
+                        const repoDataBytes = repoEncoder.encode(repoContent);
+                        const repoHashBuffer = await crypto.subtle.digest('SHA-256', repoDataBytes);
+                        const repoHashArray = Array.from(new Uint8Array(repoHashBuffer));
+                        const repoHash = repoHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        
+                        return {
+                            current: currentHash,
+                            repository: repoHash,
+                            match: currentHash === repoHash,
+                            currentUrl: window.location.href,
+                            repoUrl: repoData.html_url,
+                            sha: repoData.sha
+                        };
+                    } else {
+                        return {
+                            current: currentHash,
+                            repository: null,
+                            match: null,
+                            error: 'GitHub API access failed'
+                        };
+                    }
+                } catch (error) {
+                    console.error('Integrity check error:', error);
+                    return {
+                        error: error.message
+                    };
+                }
+            }
+            
             // UTF-8対応のBase64エンコード
             encodeUTF8ToBase64(text) {
                 try {
@@ -4048,7 +4106,7 @@
                 // バージョン表示を設定から取得
                 versionInfo.textContent = APP_CONFIG.version.displayVersion;
                 
-                versionInfo.addEventListener('click', () => {
+                versionInfo.addEventListener('click', async () => {
                     const buildInfo = {
                         version: APP_CONFIG.version.fullVersion,
                         buildTime: APP_CONFIG.version.buildTime,
@@ -4057,20 +4115,78 @@
                             'コンテキストメニュー改善', 
                             'ファイルフィルタリング改善',
                             'バージョン管理統一',
-                            'ファイル検索機能（開発中）'
+                            'ノート横断検索機能',
+                            'スクロール位置記憶機能'
                         ]
                     };
                     
+                    // コード完全性チェック
+                    let integrityInfo = '計算中...';
+                    try {
+                        const response = await fetch(window.location.href);
+                        const text = await response.text();
+                        const encoder = new TextEncoder();
+                        const data = encoder.encode(text);
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        integrityInfo = `SHA-256: ${hashHex.substring(0, 32)}...${hashHex.substring(hashHex.length - 8)}`;
+                    } catch (error) {
+                        integrityInfo = 'ハッシュ計算エラー';
+                    }
+                    
+                    const commitInfo = APP_CONFIG.version.commitHash || 'N/A';
+                    
                     alert(`Cloud Simple Text\n\n` +
                           `バージョン: ${buildInfo.version}\n` +
-                          `ビルド時刻: ${buildInfo.buildTime}\n\n` +
+                          `ビルド時刻: ${buildInfo.buildTime}\n` +
+                          `コミット: ${commitInfo}\n\n` +
+                          `コード完全性:\n${integrityInfo}\n\n` +
                           `主な機能:\n${buildInfo.features.map(f => `• ${f}`).join('\n')}\n\n` +
-                          `GitHub: https://github.com/katsupin/cloud-simple-text-editor`);
+                          `GitHub: https://github.com/katsupin/cloud-simple-text-editor\n\n` +
+                          `※ 詳細な検証は開発者ツールのコンソールで確認できます`);
+                    
+                    // 詳細情報をコンソールに出力
+                    console.log('=== Code Integrity Check ===');
+                    console.log('Current URL:', window.location.href);
+                    console.log('File Hash:', integrityInfo);
+                    console.log('Repository:', 'https://github.com/katsupin/cloud-simple-text-editor');
+                    console.log('To verify: Compare this hash with the file in the repository');
                 });
             }
             
             // デバッグ用ヘルパー関数
             window.debugApp = {
+                // コード完全性チェック
+                verifyIntegrity: async () => {
+                    console.log('🔍 Starting code integrity check...');
+                    const result = await window.app.verifyCodeIntegrity();
+                    
+                    if (result.error) {
+                        console.error('❌ Integrity check failed:', result.error);
+                        return;
+                    }
+                    
+                    console.log('=== Code Integrity Verification Results ===');
+                    console.log('Current page hash:', result.current);
+                    console.log('Repository hash:', result.repository);
+                    console.log('Match status:', result.match ? '✅ VERIFIED' : '❌ MISMATCH');
+                    console.log('Current URL:', result.currentUrl);
+                    console.log('Repository URL:', result.repoUrl);
+                    console.log('Repository SHA:', result.sha);
+                    
+                    if (result.match) {
+                        console.log('✅ The code you are running matches the repository version!');
+                    } else if (result.repository) {
+                        console.warn('⚠️ The code differs from the repository version.');
+                        console.log('This could mean:');
+                        console.log('1. You are running a development version');
+                        console.log('2. The deployment is pending');
+                        console.log('3. The code has been modified');
+                    }
+                    
+                    return result;
+                },
                 checkAuth: () => {
                     console.log('Current auth status:', {
                         token: !!window.app.githubToken,

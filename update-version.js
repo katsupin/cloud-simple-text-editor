@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 function updateVersion() {
     const now = new Date();
@@ -26,8 +27,17 @@ function updateVersion() {
     
     const fullVersion = `v${version.major}.${version.minor}.${version.build}.${version.revision}`;
     
+    // 現在のGitコミットハッシュを取得
+    let commitHash = 'unknown';
+    try {
+        commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+    } catch (error) {
+        console.warn('⚠️ Could not get git commit hash');
+    }
+    
     console.log(`🔄 Updating version to: ${fullVersion}`);
     console.log(`📅 Build time: ${version.buildTime}`);
+    console.log(`🔖 Commit hash: ${commitHash}`);
     
     // index.htmlファイルを読み込み
     const indexPath = path.join(__dirname, 'index.html');
@@ -50,7 +60,8 @@ function updateVersion() {
                 buildTime: '${version.buildTime}',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
-                }
+                },
+                commitHash: '${commitHash}'
             }
         };`;
     
