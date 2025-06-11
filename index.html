@@ -394,12 +394,14 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.5;
-            color: rgba(100, 180, 255, 0.9); /* 明るい青色で視認性向上 */
-            font-weight: bold; /* 太字で視認性向上 */
-            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3); /* 微妙なグロー効果 */
+            color: rgba(100, 180, 255, 0.8);
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3);
+            user-select: none;
+            transform-origin: top left;
             white-space: pre-wrap;
             overflow: hidden; /* エディタ範囲内に制限 */
-            z-index: 1;
+            z-index: 2;
             padding: 0; /* パディングはtop/left/right/bottomで制御 */
             box-sizing: border-box;
             max-height: calc(100% - 40px); /* 上下パディング分を除く */
@@ -423,6 +425,10 @@
             background: rgba(30, 30, 30, 0.95); /* わずかに透明にしてオーバーレイを見やすく */
         }
         
+        .whitespace-overlay.hidden {
+            display: none !important;
+            visibility: hidden !important;
+        }
         
         .app-footer {
             position: fixed;
@@ -1457,6 +1463,7 @@
                 this.currentSearchTerm = '';
                 this.searchMode = 'name'; // 'name' or 'content'
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
+                this.showWhitespace = false; // 不可視文字表示フラグ
                 this.isSearching = false;
                 this.scrollSaveTimeout = null; // スクロール保存のタイムアウト
                 
@@ -1512,8 +1519,21 @@
                 
                 // 不可視文字表示のイベントリスナー
                 document.getElementById('whitespaceToggle').addEventListener('click', () => this.toggleWhitespaceDisplay());
-                document.getElementById('editor').addEventListener('input', () => this.updateWhitespaceOverlay());
-                document.getElementById('editor').addEventListener('scroll', () => this.syncOverlayScroll());
+                
+                // エディタの変更とスクロールに応じてオーバーレイを更新
+                const editor = document.getElementById('editor');
+                editor.addEventListener('input', () => {
+                    this.updateWhitespaceOverlay();
+                });
+                editor.addEventListener('scroll', () => {
+                    this.syncOverlayScroll();
+                });
+                editor.addEventListener('keyup', () => {
+                    this.updateWhitespaceOverlay();
+                });
+                editor.addEventListener('paste', () => {
+                    setTimeout(() => this.updateWhitespaceOverlay(), 10);
+                });
                 
                 // 設定ボタンのイベントリスナー
                 document.getElementById('settingsToggle').addEventListener('click', () => this.showSettingsDialog());
