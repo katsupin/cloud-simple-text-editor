@@ -790,6 +790,66 @@
             margin: 0;
         }
         
+        /* 設定ダイアログ */
+        .settings-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 30px;
+            min-width: 400px;
+            max-width: 600px;
+            z-index: 1001;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+        
+        .settings-dialog h2 {
+            margin-bottom: 20px;
+            color: #ffffff;
+            font-size: 18px;
+        }
+        
+        .settings-section {
+            margin-bottom: 20px;
+        }
+        
+        .settings-section h3 {
+            margin-bottom: 15px;
+            color: #d4d4d4;
+            font-size: 16px;
+            border-bottom: 1px solid #3e3e42;
+            padding-bottom: 8px;
+        }
+        
+        .settings-item {
+            margin-bottom: 15px;
+        }
+        
+        .settings-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            color: #cccccc;
+        }
+        
+        .settings-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .settings-description {
+            margin-top: 5px;
+            margin-left: 28px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+        
         /* ハンバーガーメニューボタン */
         .mobile-menu-btn {
             display: none;
@@ -1202,6 +1262,7 @@
                 <div class="file-info" id="fileInfo">ファイルが選択されていません</div>
                 <div class="editor-tools">
                     <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
+                    <button class="tool-btn" id="settingsToggle" title="設定">⚙️</button>
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
                 </div>
             </div>
@@ -1298,9 +1359,31 @@
         </div>
     </div>
     
+    <!-- 設定ダイアログ -->
+    <div class="settings-dialog hidden" id="settingsDialog">
+        <h2>⚙️ 設定</h2>
+        
+        <div class="settings-section">
+            <h3>スクロール設定</h3>
+            <div class="settings-item">
+                <label class="settings-label">
+                    <input type="checkbox" id="autoScrollToBottom" class="settings-checkbox">
+                    <span>ファイルを開いた時に自動的に最下部へスクロール</span>
+                </label>
+                <div class="settings-description">
+                    日記やログファイルなど、最新の内容が下部にあるファイルに便利です
+                </div>
+            </div>
+        </div>
+        
+        <div class="dialog-buttons">
+            <button class="btn btn-cancel" id="closeSettings">閉じる</button>
+        </div>
+    </div>
+    
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.2337
+        v2.1.20250611.2359
     </div>
 
     <script>
@@ -1310,14 +1393,14 @@
                 major: 2,
                 minor: 1,
                 build: 20250611,
-                revision: 2337,
+                revision: 2359,
                 get fullVersion() {
                     return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
                 },
                 get displayVersion() {
                     return this.fullVersion;
                 },
-                buildTime: '2025-06-11 14:37:18',
+                buildTime: '2025-06-11 14:59:32',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
                 }
@@ -1349,6 +1432,9 @@
                 this.searchMode = 'name'; // 'name' or 'content'
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
                 this.isSearching = false;
+                
+                // 設定の初期化
+                this.settings = this.loadSettings();
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
@@ -1392,6 +1478,11 @@
                 document.getElementById('editor').addEventListener('input', () => this.updateWhitespaceOverlay());
                 document.getElementById('editor').addEventListener('scroll', () => this.syncOverlayScroll());
                 
+                // 設定ボタンのイベントリスナー
+                document.getElementById('settingsToggle').addEventListener('click', () => this.showSettingsDialog());
+                document.getElementById('closeSettings').addEventListener('click', () => this.hideSettingsDialog());
+                document.getElementById('autoScrollToBottom').addEventListener('change', (e) => this.onSettingsChange());
+                
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
                 document.getElementById('cancelAuth').addEventListener('click', () => this.hideAuthDialog());
@@ -1427,6 +1518,10 @@
                     if (e.target.id === 'authDialog') {
                         this.hideAuthDialog();
                     }
+                    // 設定ダイアログの外側クリックで閉じる
+                    if (e.target.id === 'settingsDialog') {
+                        this.hideSettingsDialog();
+                    }
                     // モバイルメニューの外側クリックで閉じる
                     if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-menu-btn')) {
                         this.closeMobileMenu();
@@ -1443,10 +1538,20 @@
                     if (e.key === 'Escape') {
                         this.hideContextMenu();
                         this.hideAuthDialog();
+                        this.hideSettingsDialog();
                     }
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
                         this.showAuthDialog();
+                    }
+                    // PC版スクロールショートカット
+                    if (e.ctrlKey && e.key === 'Home') {
+                        e.preventDefault();
+                        this.scrollToTop();
+                    }
+                    if (e.ctrlKey && e.key === 'End') {
+                        e.preventDefault();
+                        this.scrollToBottom();
                     }
                 });
             }
@@ -1632,6 +1737,47 @@
                 if (!document.getElementById('rememberToken').checked) {
                     document.getElementById('githubToken').value = '';
                 }
+            }
+            
+            // 設定ダイアログの表示/非表示
+            showSettingsDialog() {
+                document.getElementById('settingsDialog').classList.remove('hidden');
+                // 現在の設定値を反映
+                document.getElementById('autoScrollToBottom').checked = this.settings.autoScrollToBottom;
+            }
+            
+            hideSettingsDialog() {
+                document.getElementById('settingsDialog').classList.add('hidden');
+            }
+            
+            // 設定の読み込み
+            loadSettings() {
+                const stored = localStorage.getItem('cloudSimpleTextSettings');
+                const defaults = {
+                    autoScrollToBottom: false
+                };
+                
+                if (stored) {
+                    try {
+                        return { ...defaults, ...JSON.parse(stored) };
+                    } catch (e) {
+                        console.error('Failed to load settings:', e);
+                        return defaults;
+                    }
+                }
+                return defaults;
+            }
+            
+            // 設定の保存
+            saveSettings() {
+                localStorage.setItem('cloudSimpleTextSettings', JSON.stringify(this.settings));
+                console.log('Settings saved:', this.settings);
+            }
+            
+            // 設定変更時の処理
+            onSettingsChange() {
+                this.settings.autoScrollToBottom = document.getElementById('autoScrollToBottom').checked;
+                this.saveSettings();
             }
             
             async onTokenInput() {
@@ -2256,6 +2402,18 @@
                         item.classList.add('active');
                     }
                 });
+                
+                // 自動下端スクロール機能
+                if (this.settings.autoScrollToBottom) {
+                    setTimeout(() => {
+                        const editor = document.getElementById('editor');
+                        editor.scrollTo({ 
+                            top: editor.scrollHeight, 
+                            behavior: 'smooth' 
+                        });
+                        console.log('📜 Auto-scrolled to bottom');
+                    }, 200);
+                }
                 
                 // モバイル環境でファイル読み込み完了時にサイドバーを自動で閉じる
                 if (window.innerWidth <= 768) {

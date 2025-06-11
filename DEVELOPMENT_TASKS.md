@@ -34,12 +34,12 @@
 ## 📱 スクロール仕様改善
 
 ### 優先度: 中
-- [ ] ファイル開いた時の自動下端スクロール機能
-  - [ ] 設定UIの追加（デフォルトOFF）
-  - [ ] processFileContent関数への実装
-  - [ ] localStorageへの設定保存
-- [ ] PC版スクロールコントロール追加
-  - [ ] Ctrl+Home/Endショートカット実装
+- [x] **COMPLETED** ファイル開いた時の自動下端スクロール機能
+  - [x] **COMPLETED** 設定UIの追加（デフォルトOFF）
+  - [x] **COMPLETED** processFileContent関数への実装
+  - [x] **COMPLETED** localStorageへの設定保存
+- [x] **COMPLETED** PC版スクロールコントロール追加
+  - [x] **COMPLETED** Ctrl+Home/Endショートカット実装
   - [ ] スクロールボタンUI（オプション）
 - [ ] スクロール位置記憶機能
   - [ ] ファイルごとの位置保存
@@ -86,3 +86,15 @@
   - onSearchModeChange関数実装
   - highlightMatch関数実装（HTMLエスケープ対応）
   - 検索結果専用スタイル追加
+
+### 2025-06-11 スクロール機能改善
+- ✅ **自動下端スクロール機能実装**
+  - 設定ダイアログUI実装（⚙️ボタン追加）
+  - チェックボックスで有効/無効を切り替え可能
+  - localStorageで設定を永続化
+  - processFileContent関数に自動スクロール処理追加
+  - デフォルトはOFF（ユーザーフレンドリー）
+- ✅ **PC版キーボードショートカット実装**
+  - Ctrl+Home: エディタ最上部へスクロール
+  - Ctrl+End: エディタ最下部へスクロール
+  - スムーズスクロール対応
