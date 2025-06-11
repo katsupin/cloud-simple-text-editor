@@ -423,18 +423,6 @@
             background: rgba(30, 30, 30, 0.95); /* わずかに透明にしてオーバーレイを見やすく */
         }
         
-        .performance-info {
-            background: #252526;
-            padding: 10px 20px;
-            border-top: 1px solid #3e3e42;
-            font-size: 12px;
-            color: #cccccc;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-        }
         
         .app-footer {
             position: fixed;
@@ -457,11 +445,27 @@
         .footer-left {
             display: flex;
             align-items: center;
+            flex: 0 0 auto;
+        }
+        
+        .footer-center {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .footer-center .separator {
+            color: #444;
         }
         
         .footer-right {
             display: flex;
             align-items: center;
+            flex: 0 0 auto;
         }
         
         .company-link {
@@ -1127,19 +1131,6 @@
                 flex: 1;
             }
             
-            .performance-info {
-                padding: 6px 15px;
-                font-size: 10px;
-                flex-wrap: wrap;
-                gap: 8px;
-                background: #252526;
-                border-top: 1px solid #3e3e42;
-                position: sticky;
-                bottom: 0;
-                flex-shrink: 0;
-                max-height: 35px;
-                overflow: hidden;
-            }
             
             /* 認証ダイアログのモバイル対応 */
             .auth-dialog {
@@ -1246,11 +1237,6 @@
                 padding: 10px;
             }
             
-            .performance-info {
-                font-size: 9px;
-                padding: 4px 8px;
-                max-height: 30px;
-            }
         }
         
         /* タッチデバイス最適化 */
@@ -1321,15 +1307,6 @@
             <div class="editor-wrapper">
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
                 <textarea class="editor" id="editor" placeholder="Login to GitHub to start editing files..."></textarea>
-            </div>
-            <div class="performance-info">
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <span>📊 Performance:</span>
-                    <span id="perfLines">Lines: 0</span>
-                    <span id="perfSize">Size: 0 KB</span>
-                    <span id="perfMemory">Memory: 0 MB</span>
-                    <span id="perfLoad">Load time: 0ms</span>
-                </div>
             </div>
         </div>
     </div>
@@ -4547,6 +4524,15 @@
     <div class="app-footer">
         <div class="footer-left">
             Developed by <a href="https://ricrio.jp/" target="_blank" class="company-link">ricrio Inc.</a>
+        </div>
+        <div class="footer-center">
+            <span id="perfLines">Lines: 0</span>
+            <span class="separator">|</span>
+            <span id="perfSize">Size: 0 KB</span>
+            <span class="separator">|</span>
+            <span id="perfMemory">Memory: 0 MB</span>
+            <span class="separator">|</span>
+            <span id="perfLoad">Load time: 0ms</span>
         </div>
         <div class="footer-right">
             <div class="version-info" id="versionInfo" title="クリックで詳細表示">
