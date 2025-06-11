@@ -406,8 +406,8 @@
             visibility: visible !important;
             opacity: 1 !important;
             padding: 0;
+            padding-bottom: calc(100vh - 250px); /* エディタと同じ下部パディング */
             box-sizing: border-box;
-            max-height: calc(100% - 40px);
             /* 特定の文字のみ青色で表示 */
             font-variant-ligatures: none;
         }
@@ -3200,7 +3200,7 @@
                         } else if (char === '\t') {
                             lineHTML += '<span class="whitespace-char">→</span>';
                         } else if (char === '　') {
-                            lineHTML += '<span class="whitespace-char">＿</span>';
+                            lineHTML += '<span class="whitespace-char">□</span>';
                         } else {
                             // 通常文字はエスケープして透明に
                             const escaped = char
