@@ -392,11 +392,11 @@
             bottom: 20px;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            color: rgba(255, 255, 0, 0.9) !important;
+            color: rgba(100, 180, 255, 0.8) !important;
             font-weight: bold !important;
             font-size: 14px !important;
             line-height: 1.5 !important;
-            text-shadow: 0 0 2px rgba(255, 255, 0, 0.3) !important;
+            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3) !important;
             user-select: none;
             transform-origin: top left;
             white-space: pre-wrap !important;
@@ -3183,12 +3183,13 @@
                 const lines = text.split('\n');
                 const visualizedText = lines.map((line, index) => {
                     let processedLine = line
+                        .replace(/[^\s\n\t　]/g, '\u2800') // 通常文字を透明なブライユ文字に置換
                         .replace(/ /g, '·')  // 通常スペース → 中点
                         .replace(/\t/g, '→') // タブ → 矢印
                         .replace(/　/g, '　'); // 全角スペース → そのまま（幅を保持）
                     
-                    // 空行でない場合、または最後の行でない場合に¶を追加
-                    if (line.length > 0 && index < lines.length - 1) {
+                    // 最後の行以外は¶を追加
+                    if (index < lines.length - 1) {
                         processedLine += '¶';
                     }
                     
