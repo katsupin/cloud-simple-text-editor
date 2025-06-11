@@ -81,6 +81,18 @@
             padding: 20px;
         }
         
+        #fileListHeader {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 -8px 0 -8px;
+            transition: background-color 0.2s;
+        }
+        
+        #fileListHeader:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
         .file-list {
             margin-top: 20px;
         }
@@ -997,7 +1009,7 @@
     
     <div class="main-container">
         <div class="sidebar">
-            <h3>📁 ファイル</h3>
+            <h3 id="fileListHeader">📁 ファイル</h3>
             <div class="file-list" id="fileList">
                 <div class="file-item">ファイルを読み込み中...</div>
             </div>
@@ -1187,6 +1199,7 @@
                 
                 // コンテキストメニューのイベントリスナー
                 document.getElementById('fileList').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
+                document.getElementById('fileListHeader').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
                 
                 // フォルダコンテキストメニューのイベントリスナー
                 document.getElementById('createFileItem').addEventListener('click', () => this.createNewFile());
@@ -1590,10 +1603,22 @@
                     
                     if (response.ok) {
                         const items = await response.json();
+                        console.log('🔍 API Response items:', items);
+                        console.log('🔍 Total items received:', items.length);
+                        
+                        // アイテムの詳細を確認
+                        items.forEach(item => {
+                            console.log(`📋 Item: ${item.name} | Type: ${item.type} | Path: ${item.path}`);
+                        });
+                        
                         // フォルダとファイルを分離
                         this.folders = items.filter(item => item.type === 'dir');
                         this.files = items.filter(item => item.type === 'file' && 
                             (item.name.endsWith('.md') || item.name.endsWith('.txt')));
+                            
+                        console.log('📁 Detected folders:', this.folders.map(f => f.name));
+                        console.log('📄 Detected files:', this.files.map(f => f.name));
+                        
                         this.renderFileList();
                         this.updateAuthUI(true);
                     } else {
@@ -2175,18 +2200,30 @@
                 console.log('🖱️ Context menu triggered on:', event.target);
                 console.log('🖱️ Event target tagName:', event.target.tagName);
                 console.log('🖱️ Event target className:', event.target.className);
+                console.log('🖱️ Event target id:', event.target.id);
                 console.log('🖱️ Event target parentElement:', event.target.parentElement);
                 console.log('🖱️ Event target dataset:', event.target.dataset);
                 
                 // クリック対象を判定
                 const fileItem = event.target.closest('.file-item');
                 const folderItem = event.target.closest('.folder-item');
+                const isFileListHeader = event.target.id === 'fileListHeader';
                 
                 console.log('🔍 Closest elements found:');
                 console.log('  📄 fileItem:', fileItem);
                 console.log('  📁 folderItem:', folderItem);
+                console.log('  📁 isFileListHeader:', isFileListHeader);
                 
-                if (folderItem) {
+                if (isFileListHeader) {
+                    // ファイル一覧ヘッダーを右クリック → ルートフォルダ操作メニュー
+                    console.log('📂 Showing root folder context menu (from header)');
+                    this.contextMenuTarget = {
+                        type: 'root',
+                        name: 'root',
+                        path: ''
+                    };
+                    this.showFolderContextMenu(event);
+                } else if (folderItem) {
                     // フォルダ項目を右クリック → フォルダ操作メニュー
                     console.log('📂 Showing folder context menu for:', folderItem.dataset.folderName);
                     console.log('📂 Folder item details:', {
