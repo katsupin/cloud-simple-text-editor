@@ -6,7 +6,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e1e1e">
-    <title>クラウドシンプルテキスト - GitHub連携ノートエディタ</title>
+    
+    <!-- OGP Meta Tags -->
+    <meta property="og:title" content="PlainHub - GitHub連携プレーンテキストエディタ">
+    <meta property="og:description" content="GitHubリポジトリ上のプレーンテキストファイルを直接編集。サーバー不要、データベース不要。あなたのテキストを、あなたのリポジトリで管理。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://plainhub.io/">
+    <meta property="og:site_name" content="PlainHub">
+    <meta name="description" content="GitHubリポジトリ上のプレーンテキストファイルを直接編集。サーバー不要、データベース不要。あなたのテキストを、あなたのリポジトリで管理。">
+    <meta name="keywords" content="PlainHub, GitHub, テキストエディタ, プレーンテキスト, バージョン管理, Git, ノート, メモ">
+    
+    <title>PlainHub - GitHub連携プレーンテキストエディタ</title>
     <style>
         * {
             margin: 0;
@@ -1383,7 +1393,7 @@
     
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.56
+        v2.1.20250611.249
     </div>
 
     <script>
@@ -1393,18 +1403,18 @@
                 major: 2,
                 minor: 1,
                 build: 20250611,
-                revision: 56,
+                revision: 249,
                 get fullVersion() {
                     return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
                 },
                 get displayVersion() {
                     return this.fullVersion;
                 },
-                buildTime: '2025-06-11 15:56:47',
+                buildTime: '2025-06-11 17:49:41',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
                 },
-                commitHash: '18eb252'
+                commitHash: '46c5c0e'
             }
         };
         
@@ -4078,7 +4088,7 @@
         
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 Cloud Simple Text v2.0 - Starting...');
+            console.log('🚀 PlainHub v2.0 - Starting...');
             
             // モバイル対応の初期化
             setVh();
@@ -4137,7 +4147,7 @@
                     
                     const commitInfo = APP_CONFIG.version.commitHash || 'N/A';
                     
-                    alert(`Cloud Simple Text\n\n` +
+                    alert(`PlainHub\n\n` +
                           `バージョン: ${buildInfo.version}\n` +
                           `ビルド時刻: ${buildInfo.buildTime}\n` +
                           `コミット: ${commitInfo}\n\n` +

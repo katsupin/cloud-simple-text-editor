@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1e1e1e">
+    
+    <!-- SEO Meta Tags -->
+    <title>PlainHub - Your text, your repo, your control</title>
+    <meta name="description" content="GitHubリポジトリ上のプレーンテキストファイルを直接編集。サーバー不要、データベース不要。透明性の高いオープンソースエディタ。">
+    <meta name="keywords" content="PlainHub, GitHub, text editor, plain text, version control, Git, OSS">
+    
+    <!-- OGP Meta Tags -->
+    <meta property="og:title" content="PlainHub - Your text, your repo, your control">
+    <meta property="og:description" content="Edit plain text files directly on GitHub. No servers, no databases.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://plainhub.io/">
+    <meta property="og:site_name" content="PlainHub">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        a {
+            color: #0e639c;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            padding: 20px 0;
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #3e3e42;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: #cccccc;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #ffffff;
+        }
+        
+        .cta-button {
+            background: #0e639c;
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .cta-button:hover {
+            background: #1177bb;
+            text-decoration: none;
+        }
+        
+        /* Hero Section */
+        .hero {
+            margin-top: 80px;
+            padding: 100px 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3.5em;
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        .hero .tagline {
+            font-size: 1.5em;
+            color: #cccccc;
+            margin-bottom: 40px;
+        }
+        
+        .hero .description {
+            font-size: 1.1em;
+            color: #999999;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background: #0e639c;
+            color: #ffffff;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: #1177bb;
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: #cccccc;
+            padding: 15px 30px;
+            border: 2px solid #3e3e42;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #cccccc;
+            color: #ffffff;
+            text-decoration: none;
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+            background: #252526;
+        }
+        
+        .features h2 {
+            text-align: center;
+            font-size: 2.5em;
+            color: #ffffff;
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+        
+        .feature {
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        .feature h3 {
+            font-size: 1.5em;
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+        
+        .feature p {
+            color: #999999;
+            line-height: 1.8;
+        }
+        
+        /* How it Works */
+        .how-it-works {
+            padding: 80px 0;
+        }
+        
+        .how-it-works h2 {
+            text-align: center;
+            font-size: 2.5em;
+            color: #ffffff;
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+        
+        .step {
+            text-align: center;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background: #0e639c;
+            color: #ffffff;
+            border-radius: 50%;
+            line-height: 50px;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        
+        .step h3 {
+            font-size: 1.3em;
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+        
+        .step p {
+            color: #999999;
+        }
+        
+        /* Security Section */
+        .security {
+            padding: 80px 0;
+            background: #252526;
+        }
+        
+        .security-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .security h2 {
+            font-size: 2.5em;
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+        
+        .security-features {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .security-item {
+            display: flex;
+            align-items: start;
+            gap: 15px;
+        }
+        
+        .security-item .icon {
+            color: #0e639c;
+            font-size: 1.5em;
+            margin-top: 3px;
+        }
+        
+        .security-code {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d4d4d4;
+            overflow-x: auto;
+        }
+        
+        .security-code pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid #3e3e42;
+            text-align: center;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links a {
+            color: #999999;
+        }
+        
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5em;
+            }
+            
+            .hero .tagline {
+                font-size: 1.2em;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .security-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <div class="logo">PlainHub</div>
+            <div class="nav-links">
+                <a href="#features">特徴</a>
+                <a href="#how-it-works">使い方</a>
+                <a href="https://github.com/katsupin/cloud-simple-text-editor" target="_blank">GitHub</a>
+                <a href="index.html" class="cta-button">エディタを開く</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Your text, your repo, your control</h1>
+            <p class="tagline">GitHubで直接編集できる、最もシンプルなテキストエディタ</p>
+            <p class="description">
+                サーバー不要、データベース不要。必要なのはGitHubアカウントとブラウザだけ。<br>
+                あなたのテキストファイルを、あなたのリポジトリで、完全にコントロール。
+            </p>
+            <div class="hero-buttons">
+                <a href="index.html" class="btn-primary">今すぐ始める</a>
+                <a href="https://github.com/katsupin/cloud-simple-text-editor" class="btn-secondary">ソースコードを見る</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>PlainHubの特徴</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <h3>完全なデータ所有権</h3>
+                    <p>すべてのファイルはあなたのGitHubリポジトリに保存。プライベートリポジトリも完全サポート。第三者のサーバーにデータが保存されることはありません。</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h3>超高速・軽量</h3>
+                    <p>プレーンテキストに特化した設計により、数万行のファイルでも軽快に動作。リッチテキストやレンダリングのオーバーヘッドなし。</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <h3>完全なバージョン管理</h3>
+                    <p>すべての変更がGitコミットとして記録。いつ、何を変更したか完全に追跡可能。GitHubの強力なバージョン管理をそのまま活用。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2>使い方</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>GitHubトークンを用意</h3>
+                    <p>GitHubの設定からPersonal Access Tokenを生成。repoスコープを選択するだけ。</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>リポジトリを選択</h3>
+                    <p>編集したいファイルがあるリポジトリを選択。プライベートリポジトリもOK。</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>編集開始</h3>
+                    <p>ファイルを選んで編集開始。自動保存で変更は即座にGitHubに反映。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section class="security">
+        <div class="container">
+            <div class="security-content">
+                <div>
+                    <h2>透明性とセキュリティ</h2>
+                    <div class="security-features">
+                        <div class="security-item">
+                            <span class="icon">✓</span>
+                            <div>
+                                <h4>オープンソース</h4>
+                                <p>すべてのコードがGitHubで公開。何をしているか完全に確認可能。</p>
+                            </div>
+                        </div>
+                        <div class="security-item">
+                            <span class="icon">✓</span>
+                            <div>
+                                <h4>コード完全性検証</h4>
+                                <p>実行中のコードがリポジトリと同一か、いつでも検証可能。</p>
+                            </div>
+                        </div>
+                        <div class="security-item">
+                            <span class="icon">✓</span>
+                            <div>
+                                <h4>ローカルストレージのみ</h4>
+                                <p>認証情報は端末のローカルストレージにのみ保存。外部送信なし。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="security-code">
+                    <pre><code>// コード完全性を検証
+debugApp.verifyIntegrity()
+
+// 結果:
+{
+  current: "sha256:abc123...",
+  repository: "sha256:abc123...",
+  match: true ✓
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/katsupin/cloud-simple-text-editor">GitHub</a>
+                <a href="INTEGRITY.md">コード完全性</a>
+                <a href="https://github.com/katsupin/cloud-simple-text-editor/issues">Issue報告</a>
+            </div>
+            <p>&copy; 2025 PlainHub. Open Source under MIT License.</p>
+        </div>
+    </footer>
+</body>
+</html>
