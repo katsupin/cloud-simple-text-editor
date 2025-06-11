@@ -1613,11 +1613,45 @@
                         
                         // フォルダとファイルを分離
                         this.folders = items.filter(item => item.type === 'dir');
-                        this.files = items.filter(item => item.type === 'file' && 
-                            (item.name.endsWith('.md') || item.name.endsWith('.txt')));
+                        
+                        // より柔軟なファイルフィルタリング
+                        this.files = items.filter(item => {
+                            if (item.type !== 'file') return false;
+                            
+                            const name = item.name.toLowerCase();
+                            
+                            // 明確にテキストファイルと判断できる拡張子
+                            const textExtensions = ['.md', '.txt', '.text', '.log', '.json', '.yaml', '.yml', '.csv', '.tsv'];
+                            if (textExtensions.some(ext => name.endsWith(ext))) {
+                                return true;
+                            }
+                            
+                            // 拡張子がない場合（dummy001など）も表示
+                            if (!name.includes('.')) {
+                                return true;
+                            }
+                            
+                            // バイナリファイルと思われるものは除外
+                            const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.svg', 
+                                                    '.exe', '.dll', '.so', '.dylib', '.zip', '.tar', '.gz', 
+                                                    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+                            if (binaryExtensions.some(ext => name.endsWith(ext))) {
+                                return false;
+                            }
+                            
+                            // その他のファイルは表示（設定ファイルなど）
+                            return true;
+                        });
                             
                         console.log('📁 Detected folders:', this.folders.map(f => f.name));
                         console.log('📄 Detected files:', this.files.map(f => f.name));
+                        
+                        // フィルタリング結果の詳細ログ
+                        const allFiles = items.filter(item => item.type === 'file');
+                        const excludedFiles = allFiles.filter(file => !this.files.some(f => f.name === file.name));
+                        if (excludedFiles.length > 0) {
+                            console.log('🚫 Excluded files:', excludedFiles.map(f => f.name));
+                        }
                         
                         this.renderFileList();
                         this.updateAuthUI(true);
