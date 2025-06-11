@@ -237,6 +237,29 @@
             color: #cccccc;
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .version-info {
+            position: fixed;
+            bottom: 5px;
+            right: 10px;
+            font-size: 10px;
+            color: #666;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            z-index: 1000;
+            font-family: monospace;
+            user-select: text;
+            cursor: pointer;
+        }
+        
+        .version-info:hover {
+            color: #ccc;
+            background: rgba(0, 0, 0, 0.6);
         }
         
         .loading {
@@ -993,11 +1016,17 @@
                 <textarea class="editor" id="editor" placeholder="GitHub にログインしてファイルを開始してください..."></textarea>
             </div>
             <div class="performance-info">
-                <span>📊 パフォーマンス:</span>
-                <span id="perfLines">行数: 0</span>
-                <span id="perfSize">サイズ: 0 KB</span>
-                <span id="perfMemory">メモリ: 0 MB</span>
-                <span id="perfLoad">読み込み時間: 0ms</span>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <span>📊 パフォーマンス:</span>
+                    <span id="perfLines">行数: 0</span>
+                    <span id="perfSize">サイズ: 0 KB</span>
+                    <span id="perfMemory">メモリ: 0 MB</span>
+                    <span id="perfLoad">読み込み時間: 0ms</span>
+                </div>
+                <div class="deploy-info" style="font-size: 10px; opacity: 0.7;">
+                    <span id="buildHash">Build: 430492c</span> | 
+                    <span id="buildTime">2025-06-11 12:21</span>
+                </div>
             </div>
         </div>
     </div>
@@ -1077,6 +1106,11 @@
             <button class="btn btn-cancel" id="cancelAuth">キャンセル</button>
             <button class="btn" id="proceedAuth">次へ</button>
         </div>
+    </div>
+    
+    <!-- バージョン情報 -->
+    <div class="version-info" id="versionInfo" title="クリックで詳細表示">
+        v2.1 (430492c)
     </div>
 
     <script>
@@ -3199,6 +3233,27 @@
             
             window.app = new CloudSimpleText();
             console.log('✅ App initialized successfully');
+            
+            // バージョン情報の初期化
+            const versionInfo = document.getElementById('versionInfo');
+            if (versionInfo) {
+                versionInfo.addEventListener('click', () => {
+                    const buildInfo = {
+                        version: 'v2.1',
+                        commit: '430492c',
+                        fullCommit: '430492c5855b95aa9b5bee33dca9fff80c19e7d0',
+                        buildTime: '2025-06-11 12:21:25 +0900',
+                        features: ['フォルダ構造サポート', 'コンテキストメニュー改善', 'バージョン表示機能']
+                    };
+                    
+                    alert(`Cloud Simple Text\n\n` +
+                          `バージョン: ${buildInfo.version}\n` +
+                          `コミット: ${buildInfo.commit}\n` +
+                          `ビルド時刻: ${buildInfo.buildTime}\n\n` +
+                          `主な機能:\n${buildInfo.features.map(f => `• ${f}`).join('\n')}\n\n` +
+                          `GitHub: https://github.com/katsupin/cloud-simple-text-editor`);
+                });
+            }
             
             // デバッグ用ヘルパー関数
             window.debugApp = {
