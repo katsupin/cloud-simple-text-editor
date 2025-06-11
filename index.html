@@ -85,20 +85,46 @@
             margin-top: 20px;
         }
         
-        .file-item {
-            padding: 8px;
+        .file-item, .folder-item {
+            padding: 8px 12px;
             cursor: pointer;
             border-radius: 4px;
             font-size: 14px;
             margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .file-item:hover {
+        .file-item:hover, .folder-item:hover {
             background: #2a2d2e;
         }
         
         .file-item.active {
             background: #094771;
+        }
+        
+        .folder-icon, .file-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .folder-name, .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .folder-item {
+            font-weight: 500;
+            color: #e8e8e8;
+        }
+        
+        .file-item {
+            color: #cccccc;
         }
         
         .editor-container {
@@ -1061,6 +1087,7 @@
                 this.currentFile = null;
                 this.selectedFileName = null;
                 this.files = [];
+                this.folders = [];
                 this.repositories = [];
                 this.selectedRepo = null;
                 this.performanceMetrics = {};
@@ -1071,6 +1098,7 @@
                 this.lastEditTime = 0;
                 this.isUserCurrentlyEditing = false;
                 this.scrollControlVisible = false;
+                this.contextMenuTarget = null;
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
@@ -1527,9 +1555,11 @@
                     });
                     
                     if (response.ok) {
-                        const files = await response.json();
-                        this.files = files.filter(file => file.type === 'file' && 
-                            (file.name.endsWith('.md') || file.name.endsWith('.txt')));
+                        const items = await response.json();
+                        // フォルダとファイルを分離
+                        this.folders = items.filter(item => item.type === 'dir');
+                        this.files = items.filter(item => item.type === 'file' && 
+                            (item.name.endsWith('.md') || item.name.endsWith('.txt')));
                         this.renderFileList();
                         this.updateAuthUI(true);
                     } else {
@@ -1547,10 +1577,33 @@
                 const fileList = document.getElementById('fileList');
                 fileList.innerHTML = '';
                 
+                // フォルダを先に表示
+                if (this.folders) {
+                    this.folders.forEach(folder => {
+                        const item = document.createElement('div');
+                        item.className = 'folder-item';
+                        item.innerHTML = `<span class="folder-icon">📁</span><span class="folder-name">${folder.name}</span>`;
+                        item.dataset.folderName = folder.name;
+                        item.dataset.folderPath = folder.path;
+                        
+                        // フォルダクリックイベント（将来的に展開機能を実装）
+                        item.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            console.log('Folder clicked:', folder.name);
+                            // TODO: フォルダ展開機能の実装
+                        });
+                        
+                        fileList.appendChild(item);
+                    });
+                }
+                
+                // ファイルを表示
                 this.files.forEach(file => {
                     const item = document.createElement('div');
                     item.className = 'file-item';
-                    item.textContent = file.name;
+                    item.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${file.name}</span>`;
+                    item.dataset.fileName = file.name;
+                    item.dataset.filePath = file.path;
                     item.addEventListener('click', () => this.loadFile(file));
                     fileList.appendChild(item);
                 });
@@ -2074,18 +2127,38 @@
                 console.log('🖱️ Event target tagName:', event.target.tagName);
                 console.log('🖱️ Event target className:', event.target.className);
                 
-                // クリック対象がファイル項目かどうかを判定
+                // クリック対象を判定
                 const fileItem = event.target.closest('.file-item');
-                console.log('📁 Closest file-item:', fileItem);
+                const folderItem = event.target.closest('.folder-item');
                 
-                if (fileItem) {
+                if (folderItem) {
+                    // フォルダ項目を右クリック → フォルダ操作メニュー
+                    console.log('📂 Showing folder context menu for:', folderItem.dataset.folderName);
+                    this.contextMenuTarget = {
+                        type: 'folder',
+                        name: folderItem.dataset.folderName,
+                        path: folderItem.dataset.folderPath
+                    };
+                    this.showFolderContextMenu(event);
+                } else if (fileItem) {
                     // ファイル項目を右クリック → ファイル操作メニュー
-                    console.log('📄 Showing file context menu for:', fileItem.textContent.trim());
-                    this.selectedFileName = fileItem.textContent.trim();
+                    const fileName = fileItem.querySelector('.file-name').textContent.trim();
+                    console.log('📄 Showing file context menu for:', fileName);
+                    this.selectedFileName = fileName;
+                    this.contextMenuTarget = {
+                        type: 'file',
+                        name: fileName,
+                        path: fileItem.dataset.filePath
+                    };
                     this.showFileContextMenu(event);
                 } else {
-                    // 空白部分を右クリック → フォルダ操作メニュー
-                    console.log('📂 Showing folder context menu');
+                    // 空白部分を右クリック → ルートフォルダ操作メニュー
+                    console.log('📂 Showing root folder context menu');
+                    this.contextMenuTarget = {
+                        type: 'root',
+                        name: '',
+                        path: ''
+                    };
                     this.showFolderContextMenu(event);
                 }
             }
