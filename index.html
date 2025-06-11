@@ -3192,7 +3192,7 @@
                         } else if (char === '\t') {
                             processedLine += '→';
                         } else if (char === '　') {
-                            processedLine += '□';
+                            processedLine += '　';  // 全角スペースはそのまま（幅を保持）
                         } else {
                             // 通常文字は同じ文字を保持（色で制御）
                             processedLine += char;
