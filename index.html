@@ -418,6 +418,37 @@
             font-weight: bold !important;
         }
         
+        /* エディタ内検索ハイライトのスタイル */
+        .search-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            z-index: 15; /* whitespace overlay (z-index: 10) より上に */
+            pointer-events: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            padding: 0;
+            overflow: hidden;
+            color: transparent; /* テキストは透明にして背景だけ見せる */
+        }
+        
+        .search-highlight {
+            background: #ffff00 !important; /* 黄色のハイライト */
+            color: #000000 !important;
+            font-weight: bold !important;
+            padding: 0 1px !important;
+            border-radius: 2px !important;
+        }
+        
+        .search-overlay.hidden {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
         .editor-container {
             position: relative;
         }
@@ -1323,6 +1354,7 @@
             </div>
             <div class="editor-wrapper">
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
+                <div class="search-overlay hidden" id="searchOverlay"></div>
                 <textarea class="editor" id="editor" placeholder="Login to GitHub to start editing files..."></textarea>
             </div>
         </div>
@@ -1476,6 +1508,7 @@
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
                 this.showWhitespace = false; // 不可視文字表示フラグ
                 this.isSearching = false;
+                this.searchHighlightEnabled = false; // 検索ハイライト表示フラグ
                 this.scrollSaveTimeout = null; // スクロール保存のタイムアウト
                 
                 // 設定の初期化
@@ -1490,6 +1523,7 @@
                 
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
+                this.hideSearchOverlay(); // 初期化時に検索オーバーレイを確実に隠す
                 this.checkAuthStatus();
             }
             
@@ -1542,15 +1576,21 @@
                 const editor = document.getElementById('editor');
                 editor.addEventListener('input', () => {
                     this.updateWhitespaceOverlay();
+                    this.updateSearchOverlay();
                 });
                 editor.addEventListener('scroll', () => {
                     this.syncOverlayScroll();
+                    this.syncSearchOverlayScroll();
                 });
                 editor.addEventListener('keyup', () => {
                     this.updateWhitespaceOverlay();
+                    this.updateSearchOverlay();
                 });
                 editor.addEventListener('paste', () => {
-                    setTimeout(() => this.updateWhitespaceOverlay(), 10);
+                    setTimeout(() => {
+                        this.updateWhitespaceOverlay();
+                        this.updateSearchOverlay();
+                    }, 10);
                 });
                 
                 // 設定ボタンのイベントリスナー
@@ -2551,6 +2591,9 @@
                 // 不可視文字オーバーレイを更新
                 setTimeout(() => this.updateWhitespaceOverlay(), 100);
                 
+                // 検索ハイライトオーバーレイを更新（検索中の場合）
+                setTimeout(() => this.updateSearchOverlay(), 100);
+                
                 // SHAを記録して同期チェックを開始
                 this.lastKnownSHA = file.sha;
                 this.hideSyncNotification(); // 既存の通知をクリア
@@ -3240,6 +3283,84 @@
                         overlayVisible: !overlay.classList.contains('hidden')
                     });
                 }
+            }
+            
+            // 検索ハイライト機能
+            updateSearchOverlay() {
+                if (!this.searchHighlightEnabled || !this.currentSearchTerm) {
+                    this.hideSearchOverlay();
+                    return;
+                }
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('searchOverlay');
+                const text = editor.value;
+                
+                if (!text) {
+                    overlay.innerHTML = '';
+                    return;
+                }
+                
+                // 検索語をハイライト表示するHTMLを生成
+                const highlightedHTML = this.createSearchHighlightHTML(text, this.currentSearchTerm);
+                overlay.innerHTML = highlightedHTML;
+                this.syncSearchOverlayScroll();
+            }
+            
+            createSearchHighlightHTML(text, searchTerm) {
+                if (!text || !searchTerm) return '';
+                
+                // HTMLエスケープ処理
+                const escapeHtml = (str) => {
+                    const div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                };
+                
+                // テキストを行単位で処理
+                const lines = text.split('\n');
+                const highlightedLines = lines.map((line, index) => {
+                    const escapedLine = escapeHtml(line);
+                    const escapedSearchTerm = escapeHtml(searchTerm);
+                    
+                    // 大文字小文字を区別しない検索でハイライト
+                    const regex = new RegExp(`(${escapedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    return escapedLine.replace(regex, '<span class="search-highlight">$1</span>');
+                });
+                
+                return highlightedLines.join('\n');
+            }
+            
+            syncSearchOverlayScroll() {
+                if (!this.searchHighlightEnabled) return;
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('searchOverlay');
+                
+                if (overlay && editor) {
+                    // エディタと完全に同期
+                    overlay.scrollTop = editor.scrollTop;
+                    overlay.scrollLeft = editor.scrollLeft;
+                }
+            }
+            
+            showSearchOverlay() {
+                const overlay = document.getElementById('searchOverlay');
+                overlay.classList.remove('hidden');
+                overlay.style.display = 'block';
+                overlay.style.visibility = 'visible';
+                overlay.style.zIndex = '15';
+                overlay.style.pointerEvents = 'none';
+                this.searchHighlightEnabled = true;
+            }
+            
+            hideSearchOverlay() {
+                const overlay = document.getElementById('searchOverlay');
+                overlay.classList.add('hidden');
+                overlay.style.display = 'none';
+                overlay.style.visibility = 'hidden';
+                overlay.innerHTML = '';
+                this.searchHighlightEnabled = false;
             }
             
             handleEditorKeydown(event) {
@@ -3965,6 +4086,8 @@
                     this.files = [...this.allFiles];
                     document.getElementById('clearSearch').classList.add('hidden');
                     this.renderFileList();
+                    // 検索ハイライトを隠す
+                    this.hideSearchOverlay();
                     return;
                 }
                 
@@ -3973,9 +4096,15 @@
                 if (this.searchMode === 'name') {
                     // ファイル名検索
                     this.searchByFileName(searchTerm);
+                    // ファイル名検索でも現在開いているファイルをハイライト
+                    this.showSearchOverlay();
+                    this.updateSearchOverlay();
                 } else {
                     // 内容検索
                     await this.searchByContent(searchTerm);
+                    // 内容検索では必ず現在開いているファイルをハイライト
+                    this.showSearchOverlay();
+                    this.updateSearchOverlay();
                 }
             }
             
@@ -4078,29 +4207,14 @@
                 
                 document.getElementById('clearSearch').classList.add('hidden');
                 
+                // 検索ハイライトを隠す
+                this.hideSearchOverlay();
+                
                 console.log('🔍 Search cleared');
                 this.renderFileList();
                 
                 // 検索入力欄にフォーカス
                 searchInput.focus();
-            }
-            
-            // 検索モード変更時の処理
-            onSearchModeChange() {
-                const searchModeName = document.getElementById('searchModeName').checked;
-                this.searchMode = searchModeName ? 'name' : 'content';
-                
-                const searchInput = document.getElementById('fileSearch');
-                searchInput.placeholder = this.searchMode === 'name' 
-                    ? 'ファイル名で検索...' 
-                    : 'ファイル内容で検索...';
-                
-                console.log('🔍 Search mode changed to:', this.searchMode);
-                
-                // 検索中の場合は再検索
-                if (this.currentSearchTerm) {
-                    this.handleSearch({ target: searchInput });
-                }
             }
             
             // 検索語をハイライト表示
