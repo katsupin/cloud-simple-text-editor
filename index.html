@@ -1383,7 +1383,7 @@
     
     <!-- バージョン情報 -->
     <div class="version-info" id="versionInfo" title="クリックで詳細表示">
-        v2.1.20250611.2359
+        v2.1.20250611.34
     </div>
 
     <script>
@@ -1393,14 +1393,14 @@
                 major: 2,
                 minor: 1,
                 build: 20250611,
-                revision: 2359,
+                revision: 34,
                 get fullVersion() {
                     return `v${this.major}.${this.minor}.${this.build}.${this.revision}`;
                 },
                 get displayVersion() {
                     return this.fullVersion;
                 },
-                buildTime: '2025-06-11 14:59:32',
+                buildTime: '2025-06-11 15:34:07',
                 get buildTimeShort() {
                     return this.buildTime.split(' ')[1].substring(0, 5);
                 }
@@ -1432,6 +1432,7 @@
                 this.searchMode = 'name'; // 'name' or 'content'
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
                 this.isSearching = false;
+                this.scrollSaveTimeout = null; // スクロール保存のタイムアウト
                 
                 // 設定の初期化
                 this.settings = this.loadSettings();
@@ -1457,7 +1458,17 @@
                 document.getElementById('editor').addEventListener('compositionstart', () => this.onUserEdit()); // IME開始
                 document.getElementById('editor').addEventListener('compositionupdate', () => this.onUserEdit()); // IME更新
                 document.getElementById('editor').addEventListener('compositionend', () => this.onUserEdit()); // IME終了
-                document.getElementById('editor').addEventListener('scroll', () => this.updateScrollControl());
+                document.getElementById('editor').addEventListener('scroll', () => {
+                    this.updateScrollControl();
+                    
+                    // スクロール位置の保存（デバウンス処理）
+                    if (this.scrollSaveTimeout) {
+                        clearTimeout(this.scrollSaveTimeout);
+                    }
+                    this.scrollSaveTimeout = setTimeout(() => {
+                        this.saveScrollPosition();
+                    }, 500); // 500ms後に保存
+                });
                 
                 // スクロールコントロールのイベントリスナー
                 document.getElementById('scrollToTop').addEventListener('click', () => this.scrollToTop());
@@ -1553,6 +1564,11 @@
                         e.preventDefault();
                         this.scrollToBottom();
                     }
+                });
+                
+                // ページを離れる時にスクロール位置を保存
+                window.addEventListener('beforeunload', () => {
+                    this.saveScrollPosition();
                 });
             }
             
@@ -1778,6 +1794,68 @@
             onSettingsChange() {
                 this.settings.autoScrollToBottom = document.getElementById('autoScrollToBottom').checked;
                 this.saveSettings();
+            }
+            
+            // スクロール位置の保存
+            saveScrollPosition() {
+                if (!this.currentFile) return;
+                
+                const editor = document.getElementById('editor');
+                const scrollPosition = editor.scrollTop;
+                
+                // スクロール位置データの取得
+                const scrollData = this.getScrollPositions();
+                
+                // 現在のファイルのスクロール位置を更新
+                scrollData[this.currentFile.name] = {
+                    position: scrollPosition,
+                    timestamp: Date.now()
+                };
+                
+                // 古いエントリを削除（100件を超えたら古いものから削除）
+                const entries = Object.entries(scrollData);
+                if (entries.length > 100) {
+                    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+                    const toRemove = entries.slice(0, entries.length - 100);
+                    toRemove.forEach(([key]) => delete scrollData[key]);
+                }
+                
+                localStorage.setItem('cloudSimpleTextScrollPositions', JSON.stringify(scrollData));
+                console.log(`📍 Saved scroll position for ${this.currentFile.name}: ${scrollPosition}px`);
+            }
+            
+            // スクロール位置データの取得
+            getScrollPositions() {
+                const stored = localStorage.getItem('cloudSimpleTextScrollPositions');
+                if (stored) {
+                    try {
+                        return JSON.parse(stored);
+                    } catch (e) {
+                        console.error('Failed to parse scroll positions:', e);
+                        return {};
+                    }
+                }
+                return {};
+            }
+            
+            // スクロール位置の復元
+            restoreScrollPosition(fileName) {
+                const scrollData = this.getScrollPositions();
+                const fileData = scrollData[fileName];
+                
+                if (fileData && fileData.position !== undefined) {
+                    const editor = document.getElementById('editor');
+                    
+                    // 少し遅延させてコンテンツが完全に読み込まれてから復元
+                    setTimeout(() => {
+                        editor.scrollTop = fileData.position;
+                        console.log(`📍 Restored scroll position for ${fileName}: ${fileData.position}px`);
+                    }, 100);
+                    
+                    return true;
+                }
+                
+                return false;
             }
             
             async onTokenInput() {
@@ -2114,6 +2192,11 @@
             }
             
             async loadFile(file) {
+                // 現在のファイルのスクロール位置を保存
+                if (this.currentFile && this.currentFile.name !== file.name) {
+                    this.saveScrollPosition();
+                }
+                
                 const startTime = performance.now();
                 this.showLoading(true);
                 
@@ -2403,8 +2486,12 @@
                     }
                 });
                 
-                // 自動下端スクロール機能
-                if (this.settings.autoScrollToBottom) {
+                // スクロール位置の処理
+                // 1. まず保存されたスクロール位置を復元を試みる
+                const positionRestored = this.restoreScrollPosition(file.name);
+                
+                // 2. 位置が復元されなかった場合のみ、自動下端スクロールを適用
+                if (!positionRestored && this.settings.autoScrollToBottom) {
                     setTimeout(() => {
                         const editor = document.getElementById('editor');
                         editor.scrollTo({ 
