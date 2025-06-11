@@ -386,10 +386,10 @@
         /* 不可視文字表示用のオーバーレイ */
         .whitespace-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             color: rgba(100, 180, 255, 0.8) !important;
@@ -405,8 +405,9 @@
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            padding: 20px;
+            padding: 0;
             box-sizing: border-box;
+            max-height: calc(100% - 40px);
         }
         
         .editor-container {
