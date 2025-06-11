@@ -330,6 +330,16 @@
             color: #ffffff;
         }
         
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Offset for fixed header */
+        section[id] {
+            scroll-margin-top: 100px;
+        }
+        
         /* Responsive */
         @media (max-width: 768px) {
             .hero h1 {
@@ -390,7 +400,7 @@
     </section>
 
     <!-- Features Section -->
-    <section class="features">
+    <section id="features" class="features">
         <div class="container">
             <h2>PlainHubの特徴</h2>
             <div class="features-grid">
@@ -414,7 +424,7 @@
     </section>
 
     <!-- How it Works -->
-    <section class="how-it-works">
+    <section id="how-it-works" class="how-it-works">
         <div class="container">
             <h2>使い方</h2>
             <div class="steps">
