@@ -386,17 +386,17 @@
         /* 不可視文字表示用のオーバーレイ */
         .whitespace-overlay {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             pointer-events: none;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             color: rgba(100, 180, 255, 0.8) !important;
             font-weight: bold !important;
             font-size: 14px !important;
             line-height: 1.5 !important;
-            text-shadow: 0 0 2px rgba(255, 255, 0, 0.3) !important;
+            text-shadow: 0 0 2px rgba(100, 180, 255, 0.3) !important;
             user-select: none;
             transform-origin: top left;
             white-space: pre-wrap !important;
@@ -405,9 +405,8 @@
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            padding: 0; /* パディングはtop/left/right/bottomで制御 */
+            padding: 20px;
             box-sizing: border-box;
-            max-height: calc(100% - 40px); /* 上下パディング分を除く */
         }
         
         .editor-container {
@@ -419,7 +418,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* オーバーレイがwrapper外にはみ出ることを防ぐ */
+            overflow: hidden;
         }
         
         .editor.show-whitespace {
@@ -1477,6 +1476,9 @@
                 this.showWhitespace = this.settings?.showWhitespace ?? false;
                 console.log('🔧 showWhitespace initialized:', this.showWhitespace, 'from settings:', this.settings?.showWhitespace);
                 
+                // UIボタンの状態を設定に合わせる
+                this.syncUIFromSettings();
+                
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
                 this.checkAuthStatus();
@@ -1845,6 +1847,23 @@
             saveSettings() {
                 localStorage.setItem('cloudSimpleTextSettings', JSON.stringify(this.settings));
                 console.log('Settings saved:', this.settings);
+            }
+            
+            // UIボタンの状態を設定に合わせる
+            syncUIFromSettings() {
+                const toggle = document.getElementById('whitespaceToggle');
+                const overlay = document.getElementById('whitespaceOverlay');
+                const editor = document.getElementById('editor');
+                
+                if (this.showWhitespace) {
+                    toggle?.classList.add('active');
+                    overlay?.classList.remove('hidden');
+                    editor?.classList.add('show-whitespace');
+                } else {
+                    toggle?.classList.remove('active');
+                    overlay?.classList.add('hidden');
+                    editor?.classList.remove('show-whitespace');
+                }
             }
             
             // 設定変更時の処理
@@ -3131,7 +3150,7 @@
                     // 表示設定
                     overlay.style.display = 'block';
                     overlay.style.visibility = 'visible';
-                    overlay.style.zIndex = '1';
+                    overlay.style.zIndex = '10';
                     overlay.style.pointerEvents = 'none';
                     
                     this.updateWhitespaceOverlay();
