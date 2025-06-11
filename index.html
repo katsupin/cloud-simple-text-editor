@@ -1244,15 +1244,15 @@
 <body>
     <div class="header">
         <div class="header-top">
-            <button class="mobile-menu-btn" id="mobileMenuBtn" title="ファイル一覧">☰</button>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" title="File list">☰</button>
             <h1>📝 PlainHub</h1>
-            <button class="mobile-auth-toggle" id="mobileAuthToggle" title="設定メニュー">⚙️</button>
+            <button class="mobile-auth-toggle" id="mobileAuthToggle" title="Settings menu">⚙️</button>
         </div>
         <div class="auth-controls" id="authControls">
-            <span class="status" id="status">未接続</span>
-            <button class="btn secondary" id="changeRepoBtn" style="display: none;" title="リポジトリ変更">📁</button>
-            <button class="btn" id="loginBtn" title="GitHub でログイン">🔐</button>
-            <button class="btn secondary hidden" id="logoutBtn" title="ログアウト">🔓</button>
+            <span class="status" id="status">Disconnected</span>
+            <button class="btn secondary" id="changeRepoBtn" style="display: none;" title="Change repository">📁</button>
+            <button class="btn" id="loginBtn" title="Login with GitHub">🔐</button>
+            <button class="btn secondary hidden" id="logoutBtn" title="Logout">🔓</button>
         </div>
     </div>
     
@@ -1262,12 +1262,12 @@
             <div class="search-container">
                 <div class="search-mode-toggle">
                     <input type="radio" id="searchModeName" name="searchMode" value="name" checked>
-                    <label for="searchModeName">ファイル名</label>
+                    <label for="searchModeName">Name</label>
                     <input type="radio" id="searchModeContent" name="searchMode" value="content">
-                    <label for="searchModeContent">内容検索</label>
+                    <label for="searchModeContent">Content</label>
                 </div>
-                <input type="text" id="fileSearch" class="search-input" placeholder="ファイル名で検索..." autocomplete="off">
-                <button id="clearSearch" class="clear-search hidden" title="検索をクリア">✕</button>
+                <input type="text" id="fileSearch" class="search-input" placeholder="Search files..." autocomplete="off">
+                <button id="clearSearch" class="clear-search hidden" title="Clear search">✕</button>
             </div>
             <div class="file-list" id="fileList">
                 <div class="file-item">ファイルを読み込み中...</div>
@@ -1285,15 +1285,15 @@
             </div>
             <div class="editor-wrapper">
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
-                <textarea class="editor" id="editor" placeholder="GitHub にログインしてファイルを開始してください..."></textarea>
+                <textarea class="editor" id="editor" placeholder="Login to GitHub to start editing files..."></textarea>
             </div>
             <div class="performance-info">
                 <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <span>📊 パフォーマンス:</span>
-                    <span id="perfLines">行数: 0</span>
-                    <span id="perfSize">サイズ: 0 KB</span>
-                    <span id="perfMemory">メモリ: 0 MB</span>
-                    <span id="perfLoad">読み込み時間: 0ms</span>
+                    <span>📊 Performance:</span>
+                    <span id="perfLines">Lines: 0</span>
+                    <span id="perfSize">Size: 0 KB</span>
+                    <span id="perfMemory">Memory: 0 MB</span>
+                    <span id="perfLoad">Load time: 0ms</span>
                 </div>
             </div>
         </div>
@@ -1312,26 +1312,26 @@
     <!-- フォルダ操作用コンテキストメニュー -->
     <div class="context-menu hidden" id="folderContextMenu">
         <div class="context-menu-item" id="createFileItem">
-            📄 新規ファイル作成
+            📄 New File
         </div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" id="refreshFilesItem">
-            🔄 ファイル一覧更新
+            🔄 Refresh
         </div>
     </div>
     
     <!-- ファイル操作用コンテキストメニュー -->
     <div class="context-menu hidden" id="fileContextMenu">
         <div class="context-menu-item" id="renameFileItem">
-            ✏️ ファイル名変更
+            ✏️ Rename
         </div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" id="duplicateFileItem">
-            📋 複製
+            📋 Copy
         </div>
         <div class="context-menu-separator"></div>
         <div class="context-menu-item" id="deleteFileItem">
-            🗑️ 削除
+            🗑️ Delete
         </div>
     </div>
     
@@ -1346,7 +1346,7 @@
 
     <!-- 認証ダイアログ -->
     <div class="auth-dialog hidden" id="authDialog">
-        <h2>🔐 GitHub ログイン</h2>
+        <h2>🔐 GitHub Login</h2>
         
         <div class="form-group">
             <label for="githubToken">Personal Access Token:</label>
@@ -1378,23 +1378,23 @@
     
     <!-- 設定ダイアログ -->
     <div class="settings-dialog hidden" id="settingsDialog">
-        <h2>⚙️ 設定</h2>
+        <h2>⚙️ Settings</h2>
         
         <div class="settings-section">
-            <h3>スクロール設定</h3>
+            <h3>Scroll Settings</h3>
             <div class="settings-item">
                 <label class="settings-label">
                     <input type="checkbox" id="autoScrollToBottom" class="settings-checkbox">
-                    <span>ファイルを開いた時に自動的に最下部へスクロール</span>
+                    <span>Auto-scroll to bottom when opening files</span>
                 </label>
                 <div class="settings-description">
-                    日記やログファイルなど、最新の内容が下部にあるファイルに便利です
+                    Useful for diaries and log files where the latest content is at the bottom
                 </div>
             </div>
         </div>
         
         <div class="dialog-buttons">
-            <button class="btn btn-cancel" id="closeSettings">閉じる</button>
+            <button class="btn btn-cancel" id="closeSettings">Close</button>
         </div>
     </div>
     
@@ -2027,13 +2027,13 @@
                             repoShort.substring(0, maxLength) + '...' : repoShort;
                         status.innerHTML = `🟢 <span style="font-size: 9px;">${displayRepo}</span>`;
                     } else {
-                        status.innerHTML = '🟢 <span style="font-size: 9px;">接続済み</span>';
+                        status.innerHTML = '🟢 <span style="font-size: 9px;">Connected</span>';
                     }
                     loginBtn.classList.add('hidden');
                     logoutBtn.classList.remove('hidden');
                     changeRepoBtn.style.display = 'inline-block';
                 } else {
-                    status.innerHTML = '🔴 <span style="font-size: 9px;">未接続</span>';
+                    status.innerHTML = '🔴 <span style="font-size: 9px;">Disconnected</span>';
                     loginBtn.classList.remove('hidden');
                     logoutBtn.classList.add('hidden');
                     changeRepoBtn.style.display = 'none';
@@ -2668,10 +2668,10 @@
             }
             
             updatePerformanceInfo({ lines, sizeKB, memoryMB, loadTime }) {
-                document.getElementById('perfLines').textContent = `行数: ${lines.toLocaleString()}`;
-                document.getElementById('perfSize').textContent = `サイズ: ${sizeKB.toFixed(1)} KB`;
-                document.getElementById('perfMemory').textContent = `メモリ: ${memoryMB.toFixed(1)} MB`;
-                document.getElementById('perfLoad').textContent = `読み込み時間: ${loadTime.toFixed(0)}ms`;
+                document.getElementById('perfLines').textContent = `Lines: ${lines.toLocaleString()}`;
+                document.getElementById('perfSize').textContent = `Size: ${sizeKB.toFixed(1)} KB`;
+                document.getElementById('perfMemory').textContent = `Memory: ${memoryMB.toFixed(1)} MB`;
+                document.getElementById('perfLoad').textContent = `Load time: ${loadTime.toFixed(0)}ms`;
             }
             
             getMemoryUsage() {
