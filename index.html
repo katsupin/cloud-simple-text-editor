@@ -3179,12 +3179,21 @@
                 const overlay = document.getElementById('whitespaceOverlay');
                 const text = editor.value;
                 
-                // 通常文字も表示し、不可視文字のみをハイライト
-                const visualizedText = text
-                    .replace(/ /g, '·')  // 通常スペース → 中点
-                    .replace(/\t/g, '→') // タブ → 矢印
-                    .replace(/　/g, '□') // 全角スペース → 四角
-                    .replace(/\n/g, '¶\n'); // 改行 → パラグラフ記号+改行
+                // 行ごとに処理して改行位置を保持
+                const lines = text.split('\n');
+                const visualizedText = lines.map((line, index) => {
+                    let processedLine = line
+                        .replace(/ /g, '·')  // 通常スペース → 中点
+                        .replace(/\t/g, '→') // タブ → 矢印
+                        .replace(/　/g, '□'); // 全角スペース → 四角
+                    
+                    // 空行でない場合、または最後の行でない場合に¶を追加
+                    if (line.length > 0 && index < lines.length - 1) {
+                        processedLine += '¶';
+                    }
+                    
+                    return processedLine;
+                }).join('\n');
                 
                 overlay.textContent = visualizedText;
                 this.syncOverlayScroll();
