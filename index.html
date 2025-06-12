@@ -1354,6 +1354,8 @@
             <div class="editor-header">
                 <div class="file-info" id="fileInfo">ファイルが選択されていません</div>
                 <div class="editor-tools">
+                    <button class="tool-btn" id="undoBtn" title="元に戻す (Ctrl+Z)" disabled>↶</button>
+                    <button class="tool-btn" id="redoBtn" title="やり直し (Ctrl+Y)" disabled>↷</button>
                     <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
                     <button class="tool-btn" id="settingsToggle" title="設定">⚙️</button>
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
@@ -1516,6 +1518,13 @@
                 this.showWhitespace = false; // 不可視文字表示フラグ
                 this.isSearching = false;
                 this.searchHighlightEnabled = false; // 検索ハイライト表示フラグ
+                
+                // Undo/Redo履歴管理
+                this.undoHistory = [];
+                this.redoHistory = [];
+                this.maxHistorySize = 50;
+                this.lastSavedContent = '';
+                this.isUndoRedoOperation = false;
                 this.scrollSaveTimeout = null; // スクロール保存のタイムアウト
                 
                 // 設定の初期化
@@ -1576,6 +1585,13 @@
                 // エディタ操作時にスクロールコントロールを表示
                 document.getElementById('editor').addEventListener('focus', () => this.showScrollControl());
                 document.getElementById('editor').addEventListener('input', () => this.showScrollControl());
+                
+                // Undo/Redoキーボードショートカット
+                document.addEventListener('keydown', (e) => this.handleUndoRedoShortcuts(e));
+                
+                // Undo/Redoボタンのイベントリスナー
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('redoBtn').addEventListener('click', () => this.redo());
                 
                 // 不可視文字表示のイベントリスナー
                 document.getElementById('whitespaceToggle').addEventListener('click', () => this.toggleWhitespaceDisplay());
@@ -2793,6 +2809,11 @@
             }
             
             onEditorChange() {
+                // Undo/Redo操作中でない場合のみ履歴を保存
+                if (!this.isUndoRedoOperation) {
+                    this.saveToHistory();
+                }
+                
                 // 自動保存のデバウンス処理
                 clearTimeout(this.saveTimeout);
                 this.saveTimeout = setTimeout(() => {
@@ -4362,6 +4383,133 @@
                         error: error.message
                     };
                 }
+            }
+            
+            // Undo/Redo機能
+            handleUndoRedoShortcuts(event) {
+                const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+                const ctrlKey = isMac ? event.metaKey : event.ctrlKey;
+                
+                if (ctrlKey && event.key === 'z' && !event.shiftKey) {
+                    event.preventDefault();
+                    this.undo();
+                } else if (ctrlKey && ((event.key === 'y') || (event.key === 'z' && event.shiftKey))) {
+                    event.preventDefault();
+                    this.redo();
+                }
+            }
+            
+            saveToHistory() {
+                const editor = document.getElementById('editor');
+                const currentContent = editor.value;
+                
+                // 内容が変わっていない場合はスキップ
+                if (currentContent === this.lastSavedContent) {
+                    return;
+                }
+                
+                // カーソル位置も保存
+                const cursorPosition = editor.selectionStart;
+                
+                // 前の状態を履歴に追加
+                if (this.lastSavedContent !== '') {
+                    this.undoHistory.push({
+                        content: this.lastSavedContent,
+                        cursorPosition: this.lastCursorPosition || 0
+                    });
+                    
+                    // 履歴サイズ制限
+                    if (this.undoHistory.length > this.maxHistorySize) {
+                        this.undoHistory.shift();
+                    }
+                }
+                
+                // 新しい操作でRedoスタックをクリア
+                this.redoHistory = [];
+                
+                this.lastSavedContent = currentContent;
+                this.lastCursorPosition = cursorPosition;
+                
+                this.updateUndoRedoButtons();
+            }
+            
+            undo() {
+                if (this.undoHistory.length === 0) return;
+                
+                const editor = document.getElementById('editor');
+                const currentContent = editor.value;
+                const currentCursorPosition = editor.selectionStart;
+                
+                // 現在の状態をRedoスタックに保存
+                this.redoHistory.push({
+                    content: currentContent,
+                    cursorPosition: currentCursorPosition
+                });
+                
+                // 前の状態を復元
+                const previousState = this.undoHistory.pop();
+                
+                this.isUndoRedoOperation = true;
+                editor.value = previousState.content;
+                editor.setSelectionRange(previousState.cursorPosition, previousState.cursorPosition);
+                this.lastSavedContent = previousState.content;
+                this.lastCursorPosition = previousState.cursorPosition;
+                this.isUndoRedoOperation = false;
+                
+                // オーバーレイを更新
+                this.updateWhitespaceOverlay();
+                this.updateSearchOverlay();
+                
+                this.updateUndoRedoButtons();
+                console.log('↶ Undo performed');
+            }
+            
+            redo() {
+                if (this.redoHistory.length === 0) return;
+                
+                const editor = document.getElementById('editor');
+                const currentContent = editor.value;
+                const currentCursorPosition = editor.selectionStart;
+                
+                // 現在の状態をUndoスタックに保存
+                this.undoHistory.push({
+                    content: currentContent,
+                    cursorPosition: currentCursorPosition
+                });
+                
+                // 次の状態を復元
+                const nextState = this.redoHistory.pop();
+                
+                this.isUndoRedoOperation = true;
+                editor.value = nextState.content;
+                editor.setSelectionRange(nextState.cursorPosition, nextState.cursorPosition);
+                this.lastSavedContent = nextState.content;
+                this.lastCursorPosition = nextState.cursorPosition;
+                this.isUndoRedoOperation = false;
+                
+                // オーバーレイを更新
+                this.updateWhitespaceOverlay();
+                this.updateSearchOverlay();
+                
+                this.updateUndoRedoButtons();
+                console.log('↷ Redo performed');
+            }
+            
+            updateUndoRedoButtons() {
+                const undoBtn = document.getElementById('undoBtn');
+                const redoBtn = document.getElementById('redoBtn');
+                
+                undoBtn.disabled = this.undoHistory.length === 0;
+                redoBtn.disabled = this.redoHistory.length === 0;
+            }
+            
+            initializeUndoRedo() {
+                const editor = document.getElementById('editor');
+                this.lastSavedContent = editor.value;
+                this.lastCursorPosition = 0;
+                this.undoHistory = [];
+                this.redoHistory = [];
+                this.updateUndoRedoButtons();
             }
             
             // ブラウザタブタイトルを更新
