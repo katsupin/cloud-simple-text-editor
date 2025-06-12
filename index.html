@@ -961,6 +961,78 @@
             line-height: 1.4;
         }
         
+        /* 履歴ダイアログのスタイル */
+        .history-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 24px;
+            z-index: 2000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+            min-width: 500px;
+            max-width: 800px;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .history-dialog h2 {
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 20px;
+            color: #ffffff;
+        }
+        
+        .history-content {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            max-height: 400px;
+        }
+        
+        .history-list {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .history-item {
+            padding: 12px;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #2d2d30;
+        }
+        
+        .history-item:hover {
+            background: #37373d;
+            border-color: #007acc;
+        }
+        
+        .history-item-date {
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        
+        .history-item-sha {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .history-item-message {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 4px;
+        }
+        
         /* ハンバーガーメニューボタン */
         .mobile-menu-btn {
             display: none;
@@ -1177,6 +1249,7 @@
                 right: 15px;
                 bottom: 15px;
                 padding: 0;
+                padding-bottom: calc(100vh - 200px); /* モバイル用パディング */
                 max-height: calc(100% - 30px);
                 font-size: 16px;
                 line-height: 1.4;
@@ -1195,6 +1268,19 @@
                 margin: 10px;
                 max-height: 90vh;
                 overflow-y: auto;
+            }
+            
+            /* 履歴ダイアログのモバイル対応 */
+            .history-dialog {
+                min-width: 90vw;
+                max-width: 90vw;
+                padding: 20px;
+                margin: 10px;
+                max-height: 80vh;
+            }
+            
+            .history-content {
+                max-height: 60vh;
             }
             
             .form-input {
@@ -1290,6 +1376,25 @@
             .editor {
                 font-size: 14px;
                 padding: 10px;
+                padding-bottom: calc(100vh - 150px); /* 小画面用の調整 */
+            }
+            
+            .whitespace-overlay {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                font-size: 14px;
+                padding-bottom: calc(100vh - 150px); /* 小画面用の調整 */
+            }
+            
+            .search-overlay {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                font-size: 14px;
+                padding-bottom: calc(100vh - 150px); /* 小画面用の調整 */
             }
             
         }
@@ -1357,6 +1462,7 @@
                     <button class="tool-btn" id="undoBtn" title="元に戻す (Ctrl+Z)" disabled>↶</button>
                     <button class="tool-btn" id="redoBtn" title="やり直し (Ctrl+Y)" disabled>↷</button>
                     <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
+                    <button class="tool-btn" id="historyBtn" title="ファイル履歴" disabled>📜</button>
                     <button class="tool-btn" id="settingsToggle" title="設定">⚙️</button>
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
                 </div>
@@ -1465,6 +1571,31 @@
         
         <div class="dialog-buttons">
             <button class="btn btn-cancel" id="closeSettings">Close</button>
+        </div>
+    </div>
+    
+    <!-- 履歴ダイアログ -->
+    <div class="history-dialog hidden" id="historyDialog">
+        <h2>📜 File History</h2>
+        
+        <div class="history-content">
+            <div class="history-loading" id="historyLoading">
+                <div style="padding: 20px; text-align: center; color: #888;">
+                    履歴を読み込み中...
+                </div>
+            </div>
+            <div class="history-list hidden" id="historyList">
+                <!-- 履歴アイテムがここに追加される -->
+            </div>
+            <div class="history-empty hidden" id="historyEmpty">
+                <div style="padding: 20px; text-align: center; color: #888;">
+                    履歴が見つかりません
+                </div>
+            </div>
+        </div>
+        
+        <div class="dialog-buttons">
+            <button class="btn btn-cancel" id="closeHistory">閉じる</button>
         </div>
     </div>
     
@@ -1623,6 +1754,10 @@
                 document.getElementById('closeSettings').addEventListener('click', () => this.hideSettingsDialog());
                 document.getElementById('autoScrollToBottom').addEventListener('change', (e) => this.onSettingsChange());
                 
+                // 履歴ボタンのイベントリスナー
+                document.getElementById('historyBtn').addEventListener('click', () => this.showHistoryDialog());
+                document.getElementById('closeHistory').addEventListener('click', () => this.hideHistoryDialog());
+                
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
                 document.getElementById('cancelAuth').addEventListener('click', () => this.hideAuthDialog());
@@ -1662,6 +1797,10 @@
                     if (e.target.id === 'settingsDialog') {
                         this.hideSettingsDialog();
                     }
+                    // 履歴ダイアログの外側クリックで閉じる
+                    if (e.target.id === 'historyDialog') {
+                        this.hideHistoryDialog();
+                    }
                     // モバイルメニューの外側クリックで閉じる
                     if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-menu-btn')) {
                         this.closeMobileMenu();
@@ -1679,6 +1818,7 @@
                         this.hideContextMenu();
                         this.hideAuthDialog();
                         this.hideSettingsDialog();
+                        this.hideHistoryDialog();
                     }
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
@@ -1896,6 +2036,137 @@
             
             hideSettingsDialog() {
                 document.getElementById('settingsDialog').classList.add('hidden');
+            }
+            
+            // 履歴ダイアログの表示/非表示
+            async showHistoryDialog() {
+                if (!this.currentFile) {
+                    alert('ファイルが選択されていません');
+                    return;
+                }
+                
+                const dialog = document.getElementById('historyDialog');
+                dialog.classList.remove('hidden');
+                
+                // 履歴を読み込み
+                document.getElementById('historyLoading').classList.remove('hidden');
+                document.getElementById('historyList').classList.add('hidden');
+                document.getElementById('historyEmpty').classList.add('hidden');
+                
+                try {
+                    const commits = await this.fetchFileHistory(this.currentFile.name);
+                    this.displayFileHistory(commits);
+                } catch (error) {
+                    console.error('Failed to load file history:', error);
+                    document.getElementById('historyLoading').classList.add('hidden');
+                    document.getElementById('historyEmpty').classList.remove('hidden');
+                }
+            }
+            
+            hideHistoryDialog() {
+                document.getElementById('historyDialog').classList.add('hidden');
+            }
+            
+            // ファイル履歴の取得
+            async fetchFileHistory(filename, limit = 10) {
+                const url = `https://api.github.com/repos/${this.currentRepo}/commits?path=${encodeURIComponent(filename)}&per_page=${limit}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `token ${this.githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            }
+            
+            // 履歴の表示
+            displayFileHistory(commits) {
+                const historyList = document.getElementById('historyList');
+                const historyLoading = document.getElementById('historyLoading');
+                const historyEmpty = document.getElementById('historyEmpty');
+                
+                historyLoading.classList.add('hidden');
+                
+                if (!commits || commits.length === 0) {
+                    historyEmpty.classList.remove('hidden');
+                    return;
+                }
+                
+                historyList.innerHTML = '';
+                historyList.classList.remove('hidden');
+                
+                commits.forEach(commit => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    const date = new Date(commit.commit.committer.date);
+                    const dateStr = date.toLocaleString('ja-JP', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    item.innerHTML = `
+                        <div class="history-item-date">${dateStr}</div>
+                        <div class="history-item-sha">${commit.sha.substring(0, 7)}</div>
+                        <div class="history-item-message">${commit.commit.message}</div>
+                    `;
+                    
+                    item.addEventListener('click', () => this.viewHistoricalVersion(commit.sha));
+                    
+                    historyList.appendChild(item);
+                });
+            }
+            
+            // 過去のバージョンを表示
+            async viewHistoricalVersion(sha) {
+                try {
+                    this.showLoading();
+                    
+                    const url = `https://api.github.com/repos/${this.currentRepo}/contents/${encodeURIComponent(this.currentFile.name)}?ref=${sha}`;
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `token ${this.githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch historical version: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    const content = atob(data.content);
+                    
+                    // 履歴の内容をエディタに表示（読み取り専用として）
+                    const editor = document.getElementById('editor');
+                    editor.value = content;
+                    editor.setAttribute('readonly', 'readonly');
+                    
+                    // 履歴表示中であることを示す
+                    document.getElementById('fileInfo').textContent = `${this.currentFile.name} (履歴: ${sha.substring(0, 7)})`;
+                    
+                    // 履歴ダイアログを閉じる
+                    this.hideHistoryDialog();
+                    
+                    // 復元ボタンを表示（実装は後で）
+                    alert('履歴バージョンを表示中です。編集を再開するには、ファイルを再度選択してください。');
+                    
+                } catch (error) {
+                    console.error('Failed to view historical version:', error);
+                    alert('履歴バージョンの取得に失敗しました。');
+                } finally {
+                    this.hideLoading();
+                }
             }
             
             // 設定の読み込み
@@ -2705,6 +2976,9 @@
                 
                 // エディタを正常状態に復旧
                 this.resetEditorToNormalState();
+                
+                // 履歴ボタンを有効化
+                document.getElementById('historyBtn').disabled = false;
                 
                 // 同期インジケーターを表示
                 this.showSyncIndicator('synced');
@@ -3768,6 +4042,9 @@
                 this.updatePerformanceInfo({ lines: 0, sizeKB: 0, memoryMB: 0, loadTime: 0 });
                 this.stopSyncMonitoring();
                 this.hideSyncIndicator();
+                
+                // 履歴ボタンを無効化
+                document.getElementById('historyBtn').disabled = true;
             }
             
             // 🔄 同期監視機能
