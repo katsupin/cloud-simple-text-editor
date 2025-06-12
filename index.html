@@ -1526,6 +1526,7 @@
                 this.lastSavedContent = '';
                 this.isUndoRedoOperation = false;
                 this.scrollSaveTimeout = null; // スクロール保存のタイムアウト
+                this.searchTimeout = null; // 検索のデバウンス用タイムアウト
                 
                 // 設定の初期化
                 this.settings = this.loadSettings();
@@ -1635,8 +1636,8 @@
                 document.getElementById('fileList').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
                 document.getElementById('fileListHeader').addEventListener('contextmenu', (e) => this.handleContextMenu(e));
                 
-                // 検索機能のイベントリスナー
-                document.getElementById('fileSearch').addEventListener('input', (e) => this.handleSearch(e));
+                // 検索機能のイベントリスナー（デバウンス処理）
+                document.getElementById('fileSearch').addEventListener('input', (e) => this.handleSearchDebounced(e));
                 document.getElementById('clearSearch').addEventListener('click', () => this.clearSearch());
                 document.getElementById('searchModeName').addEventListener('change', () => this.onSearchModeChange());
                 document.getElementById('searchModeContent').addEventListener('change', () => this.onSearchModeChange());
@@ -4164,6 +4165,19 @@
                 }
             }
             
+            // 検索機能（デバウンス処理）
+            handleSearchDebounced(event) {
+                // 既存のタイムアウトをクリア
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                }
+                
+                // 300ms後に検索を実行
+                this.searchTimeout = setTimeout(() => {
+                    this.handleSearch(event);
+                }, 300);
+            }
+            
             // 検索機能
             async handleSearch(event) {
                 const searchTerm = event.target.value.trim();
@@ -4192,7 +4206,13 @@
                     this.showSearchOverlay();
                     this.updateSearchOverlay();
                 } else {
-                    // 内容検索
+                    // 内容検索 - レポジトリファイルの読み込み完了を確認
+                    if (this.allFiles.length === 0) {
+                        console.warn('⚠️ Repository files not loaded yet. Content search unavailable.');
+                        // UIに状態を表示（オプション）
+                        this.renderFileList(); // 空の結果を表示
+                        return;
+                    }
                     await this.searchByContent(searchTerm);
                     // 内容検索では必ず現在開いているファイルをハイライト
                     this.showSearchOverlay();
