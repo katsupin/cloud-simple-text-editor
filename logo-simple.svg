@@ -1,0 +1,24 @@
+<svg viewBox="0 0 180 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .simple-text { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+        font-weight: 600; 
+        fill: #ffffff; 
+      }
+      .simple-accent { 
+        fill: #0e639c; 
+      }
+    </style>
+  </defs>
+  
+  <!-- Clean background -->
+  <rect width="180" height="40" fill="#1e1e1e" rx="4"/>
+  
+  <!-- Editor cursor -->
+  <rect x="8" y="8" width="2" height="24" class="simple-accent"/>
+  
+  <!-- Text -->
+  <text x="20" y="28" class="simple-text" font-size="20">Plain</text>
+  <text x="88" y="28" class="simple-accent" font-size="20">Hub</text>
+</svg>

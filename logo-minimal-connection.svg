@@ -1,0 +1,59 @@
+<svg viewBox="0 0 180 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .minimal-text { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+        font-weight: 600; 
+        fill: #ffffff; 
+      }
+      .minimal-accent { 
+        fill: #0e639c; 
+      }
+      .connection-symbol { 
+        fill: #0e639c; 
+        stroke: #ffd700; 
+        stroke-width: 1; 
+      }
+      .connection-spark { 
+        fill: #ffd700; 
+        filter: drop-shadow(0 0 2px #ffd700); 
+      }
+      .connection-line { 
+        fill: none; 
+        stroke: #0e639c; 
+        stroke-width: 1; 
+        opacity: 0.6; 
+      }
+    </style>
+  </defs>
+  
+  <!-- Clean background -->
+  <rect width="180" height="40" fill="#1e1e1e" rx="4"/>
+  
+  <!-- Minimal connection symbol -->
+  <g transform="translate(20, 20)">
+    <!-- Left connector -->
+    <rect x="-8" y="-4" width="6" height="8" rx="2" class="connection-symbol"/>
+    <circle cx="-5" cy="0" r="1" fill="#ffd700"/>
+    
+    <!-- Right connector -->
+    <rect x="2" y="-4" width="6" height="8" rx="2" class="connection-symbol"/>
+    <circle cx="5" cy="0" r="1" fill="#ffd700"/>
+    
+    <!-- Connection spark -->
+    <circle cx="0" cy="0" r="2" class="connection-spark" opacity="0.8"/>
+    
+    <!-- Connection lines -->
+    <g class="connection-line">
+      <line x1="-12" y1="0" x2="-8" y2="0"/>
+      <line x1="8" y1="0" x2="12" y2="0"/>
+    </g>
+    
+    <!-- Minimal lightning -->
+    <path d="M-1 -2 L1 0 L-1 2" fill="none" stroke="#ffd700" stroke-width="1"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="50" y="27" class="minimal-text" font-size="16">Plain</text>
+  <text x="95" y="27" class="minimal-accent" font-size="16">Hub</text>
+</svg>

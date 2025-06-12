@@ -1,0 +1,70 @@
+<svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+        font-weight: 600; 
+        fill: #ffffff; 
+      }
+      .logo-accent { 
+        fill: #0e639c; 
+      }
+      .electric-ring { 
+        fill: none; 
+        stroke: #ffd700; 
+        stroke-width: 2; 
+        filter: drop-shadow(0 0 6px #ffd700); 
+      }
+      .inner-ring { 
+        fill: none; 
+        stroke: #0e639c; 
+        stroke-width: 1.5; 
+      }
+      .spark-dot { 
+        fill: #ffd700; 
+        filter: drop-shadow(0 0 2px #ffd700); 
+      }
+      .energy-wave { 
+        fill: none; 
+        stroke: #0e639c; 
+        stroke-width: 1; 
+        opacity: 0.4; 
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="60" fill="#1e1e1e" rx="6"/>
+  
+  <!-- Electric Circle Symbol -->
+  <g transform="translate(30, 30)">
+    <!-- Outer electric ring -->
+    <circle cx="0" cy="0" r="18" class="electric-ring"/>
+    
+    <!-- Inner control ring -->
+    <circle cx="0" cy="0" r="12" class="inner-ring"/>
+    
+    <!-- Center lightning -->
+    <path d="M-4 -8 L2 -1 L-1 0 L4 8 L-2 1 L1 0 Z" class="spark-dot"/>
+    
+    <!-- Electric sparks on the ring -->
+    <g class="spark-dot">
+      <circle cx="15" cy="-9" r="1.5"/>
+      <circle cx="9" cy="15" r="1.2"/>
+      <circle cx="-15" cy="9" r="1.4"/>
+      <circle cx="-9" cy="-15" r="1.1"/>
+    </g>
+    
+    <!-- Energy waves -->
+    <g class="energy-wave">
+      <path d="M20 0 Q25 -3 30 0 Q25 3 30 0"/>
+      <path d="M-20 0 Q-25 -3 -30 0 Q-25 3 -30 0"/>
+      <path d="M0 -20 Q-3 -25 0 -30 Q3 -25 0 -30"/>
+      <path d="M0 20 Q-3 25 0 30 Q3 25 0 30"/>
+    </g>
+  </g>
+  
+  <!-- Text -->
+  <text x="70" y="38" class="logo-text" font-size="20">Plain</text>
+  <text x="125" y="38" class="logo-accent" font-size="20">Hub</text>
+</svg>

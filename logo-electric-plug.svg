@@ -1,0 +1,90 @@
+<svg viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+        font-weight: 600; 
+        fill: #ffffff; 
+      }
+      .logo-accent { 
+        fill: #0e639c; 
+      }
+      .plug-body { 
+        fill: #0e639c; 
+        stroke: #ffffff; 
+        stroke-width: 1; 
+      }
+      .plug-pins { 
+        fill: #ffd700; 
+        filter: drop-shadow(0 0 3px #ffd700); 
+      }
+      .electric-arc { 
+        fill: none; 
+        stroke: #ffd700; 
+        stroke-width: 1.5; 
+        filter: drop-shadow(0 0 4px #ffd700); 
+      }
+      .spark-particle { 
+        fill: #ffd700; 
+        opacity: 0.9; 
+      }
+      .power-cable { 
+        fill: none; 
+        stroke: #666; 
+        stroke-width: 3; 
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="60" fill="#1e1e1e" rx="6"/>
+  
+  <!-- Electric Plug Symbol -->
+  <g transform="translate(30, 30)">
+    <!-- Power cable -->
+    <path d="M-25 0 Q-20 -5 -15 0" class="power-cable"/>
+    
+    <!-- Plug body -->
+    <rect x="-15" y="-10" width="20" height="20" rx="4" class="plug-body"/>
+    
+    <!-- Electric pins -->
+    <rect x="-8" y="-6" width="3" height="8" rx="1" class="plug-pins"/>
+    <rect x="-2" y="-6" width="3" height="8" rx="1" class="plug-pins"/>
+    <rect x="4" y="-6" width="3" height="8" rx="1" class="plug-pins"/>
+    
+    <!-- Electric arcs between pins -->
+    <g class="electric-arc">
+      <path d="M-6 -2 Q-4 -6 -2 -2">
+        <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
+      </path>
+      <path d="M1 -2 Q3 -6 5 -2">
+        <animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    
+    <!-- Lightning bolt from plug -->
+    <path d="M8 -4 L12 0 L10 2 L14 8 L10 4 L12 2 Z" class="plug-pins"/>
+    
+    <!-- Electric sparks -->
+    <g class="spark-particle">
+      <circle cx="16" cy="-2" r="1">
+        <animate attributeName="opacity" values="0;1;0" dur="0.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="12" cy="10" r="0.8">
+        <animate attributeName="opacity" values="0;1;0" dur="1.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="18" cy="4" r="1.2">
+        <animate attributeName="opacity" values="0;1;0" dur="1.0s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Power indicator -->
+    <circle cx="15" cy="-15" r="2" fill="#00ff00" filter="drop-shadow(0 0 3px #00ff00)">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Text -->
+  <text x="70" y="38" class="logo-text" font-size="20">Plain</text>
+  <text x="125" y="38" class="logo-accent" font-size="20">Hub</text>
+</svg>

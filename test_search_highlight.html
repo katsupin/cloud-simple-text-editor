@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Highlight Test</title>
+    <style>
+        .search-highlight {
+            background: #ffff00 !important;
+            color: #000000 !important;
+            font-weight: bold !important;
+            padding: 0 1px !important;
+            border-radius: 2px !important;
+        }
+        
+        .editor {
+            width: 100%;
+            height: 300px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #d4d4d4;
+            background: #1e1e1e;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        
+        .search-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            z-index: 15;
+            pointer-events: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            padding: 0;
+            overflow: hidden;
+            color: transparent;
+        }
+        
+        .container {
+            position: relative;
+            width: 600px;
+            height: 340px;
+            margin: 20px auto;
+        }
+        
+        input {
+            margin: 10px;
+            padding: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <h1>Search Highlighting Test</h1>
+        <input type="text" id="searchInput" placeholder="Enter search term..." />
+        <button onclick="testHighlight()">Highlight</button>
+        <button onclick="clearHighlight()">Clear</button>
+    </div>
+    
+    <div class="container">
+        <div class="search-overlay" id="searchOverlay"></div>
+        <textarea class="editor" id="editor">This is a test document.
+It contains multiple lines of text.
+You can search for words like "test", "document", "text" etc.
+The search highlighting should work like browser Ctrl+F functionality.
+Try searching for "search" or "text" to see the highlighting in action.</textarea>
+    </div>
+    
+    <script>
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+        
+        function createSearchHighlightHTML(text, searchTerm) {
+            if (!text || !searchTerm) return '';
+            
+            const lines = text.split('\n');
+            const highlightedLines = lines.map((line) => {
+                const escapedLine = escapeHtml(line);
+                const escapedSearchTerm = escapeHtml(searchTerm);
+                
+                const regex = new RegExp(`(${escapedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                return escapedLine.replace(regex, '<span class="search-highlight">$1</span>');
+            });
+            
+            return highlightedLines.join('\n');
+        }
+        
+        function testHighlight() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const editor = document.getElementById('editor');
+            const overlay = document.getElementById('searchOverlay');
+            
+            if (!searchTerm) {
+                clearHighlight();
+                return;
+            }
+            
+            const text = editor.value;
+            const highlightedHTML = createSearchHighlightHTML(text, searchTerm);
+            overlay.innerHTML = highlightedHTML;
+            overlay.style.display = 'block';
+            
+            // Sync scroll
+            overlay.scrollTop = editor.scrollTop;
+            overlay.scrollLeft = editor.scrollLeft;
+        }
+        
+        function clearHighlight() {
+            const overlay = document.getElementById('searchOverlay');
+            overlay.innerHTML = '';
+            overlay.style.display = 'none';
+        }
+        
+        // Sync scroll when editor scrolls
+        document.getElementById('editor').addEventListener('scroll', function() {
+            const overlay = document.getElementById('searchOverlay');
+            overlay.scrollTop = this.scrollTop;
+            overlay.scrollLeft = this.scrollLeft;
+        });
+        
+        // Update highlight when text changes
+        document.getElementById('editor').addEventListener('input', function() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (searchTerm) {
+                testHighlight();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PlainHub Favicon Generator</title>
+</head>
+<body>
+    <h1>PlainHub Favicon Generator</h1>
+    <canvas id="favicon16" width="16" height="16" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <canvas id="favicon32" width="32" height="32" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <canvas id="favicon48" width="48" height="48" style="border: 1px solid #ccc; margin: 10px;"></canvas>
+    <br>
+    <button onclick="downloadFavicons()">Download All Favicons</button>
+
+    <script>
+        function drawFavicon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Left border
+            ctx.fillStyle = '#0e639c';
+            ctx.fillRect(0, 0, Math.max(1, size * 0.1), size);
+            
+            // Text
+            const fontSize = Math.max(6, size * 0.3);
+            ctx.font = `bold ${fontSize}px monospace`;
+            
+            // P
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('P', size * 0.2, size * 0.5);
+            
+            // H
+            ctx.fillStyle = '#0e639c';
+            ctx.fillText('H', size * 0.2, size * 0.8);
+            
+            // Cursor
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(size * 0.6, size * 0.4, Math.max(1, size * 0.06), size * 0.3);
+            
+            // Simple lines (for larger sizes)
+            if (size >= 32) {
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(size * 0.75, size * 0.3);
+                ctx.lineTo(size * 0.95, size * 0.3);
+                ctx.moveTo(size * 0.75, size * 0.5);
+                ctx.lineTo(size * 0.9, size * 0.5);
+                ctx.moveTo(size * 0.75, size * 0.7);
+                ctx.lineTo(size * 0.95, size * 0.7);
+                ctx.stroke();
+            }
+        }
+        
+        function downloadFavicons() {
+            [16, 32, 48].forEach(size => {
+                const canvas = document.getElementById(`favicon${size}`);
+                const link = document.createElement('a');
+                link.download = `favicon-${size}x${size}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+        
+        // Draw favicons
+        drawFavicon(document.getElementById('favicon16'), 16);
+        drawFavicon(document.getElementById('favicon32'), 32);
+        drawFavicon(document.getElementById('favicon48'), 48);
+    </script>
+</body>
+</html>

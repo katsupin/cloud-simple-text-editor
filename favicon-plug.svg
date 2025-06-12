@@ -1,0 +1,48 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .favicon-bg { fill: #1e1e1e; }
+      .favicon-plug { 
+        fill: #0e639c; 
+        stroke: #ffffff; 
+        stroke-width: 1; 
+      }
+      .favicon-pins { 
+        fill: #ffd700; 
+        filter: drop-shadow(0 0 2px #ffd700); 
+      }
+      .favicon-spark { 
+        fill: #ffd700; 
+        opacity: 0.8; 
+      }
+      .favicon-cable { 
+        fill: none; 
+        stroke: #666; 
+        stroke-width: 2; 
+      }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" class="favicon-bg" rx="6"/>
+  
+  <!-- Power cable -->
+  <path d="M2 16 Q8 12 12 16" class="favicon-cable"/>
+  
+  <!-- Plug body -->
+  <rect x="12" y="12" width="12" height="8" rx="2" class="favicon-plug"/>
+  
+  <!-- Electric pins -->
+  <rect x="15" y="14" width="2" height="4" rx="1" class="favicon-pins"/>
+  <rect x="19" y="14" width="2" height="4" rx="1" class="favicon-pins"/>
+  
+  <!-- Lightning spark -->
+  <path d="M24 14 L26 16 L25 17 L27 20 L25 18 L26 17 Z" class="favicon-pins"/>
+  
+  <!-- Electric sparks -->
+  <g class="favicon-spark">
+    <circle cx="28" cy="12" r="0.8"/>
+    <circle cx="26" cy="22" r="0.6"/>
+    <circle cx="29" cy="18" r="0.7"/>
+  </g>
+</svg>
