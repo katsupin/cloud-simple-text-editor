@@ -229,6 +229,12 @@
             display: flex;
             gap: 8px;
             overflow: hidden;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .match-line:hover {
+            background: rgba(100, 180, 255, 0.1);
         }
         
         .line-number {
@@ -2314,7 +2320,7 @@
                                 <span class="file-name">${file.name}</span>
                                 <div class="match-count">${file.totalMatches}件のマッチ</div>
                                 ${file.matchedLines.map(match => `
-                                    <div class="match-line">
+                                    <div class="match-line" data-line-number="${match.lineNumber}">
                                         <span class="line-number">L${match.lineNumber}:</span>
                                         <span class="line-content">${this.highlightMatch(match.content, this.currentSearchTerm)}</span>
                                     </div>
@@ -2322,15 +2328,75 @@
                                 ${file.totalMatches > 3 ? `<div class="more-matches">...他 ${file.totalMatches - 3} 件</div>` : ''}
                             </div>
                         `;
+                        
+                        // 各検索行にクリックイベントを追加
+                        setTimeout(() => {
+                            const matchLines = item.querySelectorAll('.match-line');
+                            matchLines.forEach(line => {
+                                line.addEventListener('click', (e) => {
+                                    e.stopPropagation(); // ファイル全体のクリックイベントを阻止
+                                    const lineNumber = parseInt(line.dataset.lineNumber);
+                                    this.loadFileAndJumpToLine(file, lineNumber);
+                                });
+                            });
+                        }, 0);
                     } else {
                         item.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${file.name}</span>`;
                     }
                     
                     item.dataset.fileName = file.name;
                     item.dataset.filePath = file.path;
-                    item.addEventListener('click', () => this.loadFile(file));
+                    
+                    // ファイル名部分のクリックイベント（検索結果でない場合、または検索結果のファイル名部分）
+                    const fileName = item.querySelector('.file-name');
+                    if (fileName) {
+                        fileName.addEventListener('click', () => this.loadFile(file));
+                    } else {
+                        item.addEventListener('click', () => this.loadFile(file));
+                    }
                     fileList.appendChild(item);
                 });
+            }
+            
+            // ファイルを読み込んで指定行にジャンプ
+            async loadFileAndJumpToLine(file, lineNumber) {
+                console.log(`🎯 Loading file ${file.name} and jumping to line ${lineNumber}`);
+                
+                // ファイルを読み込み
+                await this.loadFile(file);
+                
+                // 読み込み完了後に行にジャンプ
+                setTimeout(() => {
+                    this.jumpToLine(lineNumber);
+                }, 100);
+            }
+            
+            // エディタ内の指定行にジャンプ
+            jumpToLine(lineNumber) {
+                const editor = document.getElementById('editor');
+                const lines = editor.value.split('\n');
+                
+                if (lineNumber < 1 || lineNumber > lines.length) {
+                    console.warn(`Invalid line number: ${lineNumber}`);
+                    return;
+                }
+                
+                // 指定行の開始位置を計算
+                let charPosition = 0;
+                for (let i = 0; i < lineNumber - 1; i++) {
+                    charPosition += lines[i].length + 1; // +1 for newline character
+                }
+                
+                // カーソルを移動
+                editor.focus();
+                editor.setSelectionRange(charPosition, charPosition + lines[lineNumber - 1].length);
+                
+                // スクロールして行を表示
+                const lineHeight = parseFloat(getComputedStyle(editor).lineHeight);
+                const scrollTop = (lineNumber - 1) * lineHeight;
+                editor.scrollTop = scrollTop;
+                
+                console.log(`📍 Jumped to line ${lineNumber}, position ${charPosition}`);
             }
             
             async loadFile(file) {
