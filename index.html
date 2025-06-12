@@ -432,6 +432,7 @@
             line-height: 1.5;
             white-space: pre-wrap;
             padding: 0;
+            padding-bottom: calc(100vh - 250px); /* エディタと同じ下部パディング */
             overflow: hidden;
             color: transparent; /* テキストは透明にして背景だけ見せる */
         }
@@ -1315,7 +1316,7 @@
         <div class="header-top">
             <button class="mobile-menu-btn" id="mobileMenuBtn" title="File list">☰</button>
             <h1><a href="https://katsupin.github.io/cloud-simple-text-editor/landing.html" target="_blank" style="color: inherit; text-decoration: none;" title="PlainHub Home">📝 PlainHub</a></h1>
-            <button class="mobile-auth-toggle" id="mobileAuthToggle" title="Settings menu">⚙️</button>
+            <button class="mobile-auth-toggle" id="mobileAuthToggle" title="Login/Logout">🔐</button>
         </div>
         <div class="auth-controls" id="authControls">
             <span class="status" id="status">Disconnected</span>
@@ -1524,6 +1525,7 @@
                 this.initEventListeners();
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
                 this.hideSearchOverlay(); // 初期化時に検索オーバーレイを確実に隠す
+                this.updatePageTitle(); // 初期タイトルを設定
                 this.checkAuthStatus();
             }
             
@@ -2614,6 +2616,9 @@
                 
                 // ファイル情報を更新
                 document.getElementById('fileInfo').textContent = `${file.name} (${lines.toLocaleString()} 行)`;
+                
+                // ブラウザタブタイトルを更新
+                this.updatePageTitle(file.name);
                 
                 // エディタを正常状態に復旧
                 this.resetEditorToNormalState();
@@ -4291,6 +4296,23 @@
                         error: error.message
                     };
                 }
+            }
+            
+            // ブラウザタブタイトルを更新
+            updatePageTitle(fileName) {
+                if (!fileName) {
+                    document.title = 'PlainHub';
+                    return;
+                }
+                
+                // ファイル名が長い場合は短縮（20文字で切る）
+                let displayName = fileName;
+                if (fileName.length > 20) {
+                    displayName = fileName.substring(0, 17) + '...';
+                }
+                
+                // ファイル名を優先表示
+                document.title = `${displayName} - PlainHub`;
             }
             
             // UTF-8対応のBase64エンコード
