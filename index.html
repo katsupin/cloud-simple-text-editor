@@ -1926,9 +1926,11 @@
                 
                 // 矩形選択のマウスイベント
                 editor.addEventListener('mousedown', (e) => {
-                    if (this.isAltPressed) {
+                    if (this.isAltPressed || e.altKey) {
                         e.preventDefault();
+                        e.stopPropagation();
                         this.startRectangleSelection(e);
+                        return false;
                     }
                 });
                 
@@ -2023,6 +2025,7 @@
                     // Alt キーの押下を検出
                     if (e.key === 'Alt') {
                         this.isAltPressed = true;
+                        console.log('Alt key pressed', this.isAltPressed);
                     }
                     
                     if (e.key === 'Escape') {
@@ -2059,6 +2062,7 @@
                 document.addEventListener('keyup', (e) => {
                     if (e.key === 'Alt') {
                         this.isAltPressed = false;
+                        console.log('Alt key released', this.isAltPressed);
                     }
                 });
                 
@@ -5636,6 +5640,7 @@
             
             // 矩形選択機能のメソッド
             this.startRectangleSelection = (e) => {
+                console.log('Starting rectangle selection', { altKey: e.altKey, isAltPressed: this.isAltPressed });
                 const editor = document.getElementById('editor');
                 const pos = this.getTextPositionFromMouse(e, editor);
                 this.isRectangleSelection = true;
@@ -5675,8 +5680,8 @@
             
             this.getTextPositionFromMouse = (e, editor) => {
                 const rect = editor.getBoundingClientRect();
-                const x = e.clientX - rect.left - 20; // padding考慮
-                const y = e.clientY - rect.top - 20 + editor.scrollTop;
+                const x = e.clientX - rect.left - parseInt(window.getComputedStyle(editor).paddingLeft); // padding考慮
+                const y = e.clientY - rect.top - parseInt(window.getComputedStyle(editor).paddingTop) + editor.scrollTop;
                 
                 // 文字の幅と高さを計算
                 const charWidth = this.getCharWidth(editor);
