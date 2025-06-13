@@ -1363,8 +1363,8 @@
                 padding: 0;
                 padding-bottom: calc(100vh - 200px); /* モバイル用パディング */
                 max-height: calc(100% - 30px);
-                font-size: 16px;
-                line-height: 1.4;
+                font-size: 16px !important;
+                line-height: 1.4 !important; /* エディタと同じline-heightに統一 */
             }
             
             .editor-wrapper {
@@ -1592,7 +1592,7 @@
                     <button class="tool-btn" id="undoBtn" title="元に戻す (Ctrl+Z)" disabled>↶</button>
                     <button class="tool-btn" id="redoBtn" title="やり直し (Ctrl+Y)" disabled>↷</button>
                     <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
-                    <button class="tool-btn" id="historyBtn" title="ファイル履歴" disabled>📜</button>
+                    <button class="tool-btn" id="historyBtn" title="ファイル履歴" disabled>🕐</button>
                     <button class="tool-btn" id="settingsToggle" title="設定">⚙️</button>
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
                 </div>
@@ -1844,6 +1844,7 @@
                 this.hideSyncNotification(); // 初期化時に通知バナーを確実に隠す
                 this.hideSearchOverlay(); // 初期化時に検索オーバーレイを確実に隠す
                 this.updatePageTitle(); // 初期タイトルを設定
+                this.updateMobileAuthIcon(); // 初期状態のモバイルアイコンを設定
                 this.checkAuthStatus();
             }
             
@@ -2376,7 +2377,10 @@
                     }
                     
                     const data = await response.json();
-                    const content = atob(data.content);
+                    // UTF-8文字列のbase64デコード（日本語対応）
+                    const content = new TextDecoder('utf-8').decode(
+                        Uint8Array.from(atob(data.content), c => c.charCodeAt(0))
+                    );
                     
                     // 履歴の内容をエディタに表示（読み取り専用として）
                     const editor = document.getElementById('editor');
@@ -2669,6 +2673,9 @@
                     logoutBtn.classList.add('hidden');
                     changeRepoBtn.style.display = 'none';
                 }
+                
+                // モバイル認証アイコンを更新
+                this.updateMobileAuthIcon();
             }
             
             updateRepoNameDisplay() {
@@ -3609,10 +3616,17 @@
             
             closeMobileAuth() {
                 const authControls = document.getElementById('authControls');
-                const authBtn = document.getElementById('mobileAuthToggle');
-                
                 authControls.classList.remove('mobile-expanded');
-                authBtn.textContent = '⚙️';
+                this.updateMobileAuthIcon();
+            }
+            
+            updateMobileAuthIcon() {
+                const authBtn = document.getElementById('mobileAuthToggle');
+                if (this.githubToken) {
+                    authBtn.textContent = '🔓'; // ログイン中：開錠
+                } else {
+                    authBtn.textContent = '🔒'; // ログアウト時：ロック
+                }
             }
             
             handleContextMenu(event) {
