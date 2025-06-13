@@ -479,6 +479,41 @@
             visibility: hidden !important;
         }
         
+        /* 矩形選択オーバーレイ */
+        .rectangle-selection-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        .rectangle-selection {
+            position: absolute;
+            background: rgba(14, 99, 156, 0.3);
+            border: 1px solid #0e639c;
+            pointer-events: none;
+        }
+        
+        .rectangle-cursor {
+            position: absolute;
+            width: 2px;
+            background: #ffffff;
+            animation: blink 1s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .rectangle-selection-overlay.hidden {
+            display: none !important;
+        }
+        
         .app-footer {
             position: fixed;
             bottom: 0;
@@ -1565,6 +1600,7 @@
             <div class="editor-wrapper">
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
                 <div class="search-overlay hidden" id="searchOverlay"></div>
+                <div class="rectangle-selection-overlay hidden" id="rectangleSelectionOverlay"></div>
                 <textarea class="editor" id="editor" placeholder="Login to GitHub to start editing files..."></textarea>
             </div>
         </div>
@@ -1775,6 +1811,13 @@
                 this.searchMode = 'name'; // 'name' or 'content'
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
                 this.showWhitespace = false; // 不可視文字表示フラグ
+                
+                // 矩形選択機能の変数
+                this.isRectangleSelection = false;
+                this.rectangleSelectionStart = null;
+                this.rectangleSelectionEnd = null;
+                this.rectangleSelections = [];
+                this.isAltPressed = false;
                 this.isSearching = false;
                 this.searchHighlightEnabled = false; // 検索ハイライト表示フラグ
                 
@@ -1865,6 +1908,10 @@
                 editor.addEventListener('scroll', () => {
                     this.syncOverlayScroll();
                     this.syncSearchOverlayScroll();
+                    // 矩形選択オーバーレイも更新
+                    if (this.isRectangleSelection) {
+                        this.updateRectangleSelectionDisplay();
+                    }
                 });
                 editor.addEventListener('keyup', () => {
                     this.updateWhitespaceOverlay();
@@ -1875,6 +1922,28 @@
                         this.updateWhitespaceOverlay();
                         this.updateSearchOverlay();
                     }, 10);
+                });
+                
+                // 矩形選択のマウスイベント
+                editor.addEventListener('mousedown', (e) => {
+                    if (this.isAltPressed) {
+                        e.preventDefault();
+                        this.startRectangleSelection(e);
+                    }
+                });
+                
+                editor.addEventListener('mousemove', (e) => {
+                    if (this.isRectangleSelection) {
+                        e.preventDefault();
+                        this.updateRectangleSelection(e);
+                    }
+                });
+                
+                editor.addEventListener('mouseup', (e) => {
+                    if (this.isRectangleSelection) {
+                        e.preventDefault();
+                        this.endRectangleSelection(e);
+                    }
                 });
                 
                 // 設定ボタンのイベントリスナー
@@ -1951,12 +2020,19 @@
                 
                 // キーボードショートカット
                 document.addEventListener('keydown', (e) => {
+                    // Alt キーの押下を検出
+                    if (e.key === 'Alt') {
+                        this.isAltPressed = true;
+                    }
+                    
                     if (e.key === 'Escape') {
                         this.hideContextMenu();
                         this.hideAuthDialog();
                         this.hideSettingsDialog();
                         this.hideHistoryDialog();
                         this.cancelConflictResolution();
+                        // 矩形選択をキャンセル
+                        this.cancelRectangleSelection();
                     }
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
@@ -1970,6 +2046,19 @@
                     if (e.ctrlKey && e.key === 'End') {
                         e.preventDefault();
                         this.scrollToBottom();
+                    }
+                    
+                    // 矩形選択のキーボード操作
+                    if (e.shiftKey && e.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        e.preventDefault();
+                        this.handleRectangleSelectionKeyboard(e.key);
+                    }
+                });
+                
+                // Alt キーのリリースを検出
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'Alt') {
+                        this.isAltPressed = false;
                     }
                 });
                 
@@ -5543,6 +5632,151 @@
                         console.log('❌ Orange banner element not found');
                     }
                 }
+            };
+            
+            // 矩形選択機能のメソッド
+            this.startRectangleSelection = (e) => {
+                const editor = document.getElementById('editor');
+                const pos = this.getTextPositionFromMouse(e, editor);
+                this.isRectangleSelection = true;
+                this.rectangleSelectionStart = pos;
+                this.rectangleSelectionEnd = pos;
+                
+                const overlay = document.getElementById('rectangleSelectionOverlay');
+                overlay.classList.remove('hidden');
+                
+                this.updateRectangleSelectionDisplay();
+            };
+            
+            this.updateRectangleSelection = (e) => {
+                const editor = document.getElementById('editor');
+                const pos = this.getTextPositionFromMouse(e, editor);
+                this.rectangleSelectionEnd = pos;
+                this.updateRectangleSelectionDisplay();
+            };
+            
+            this.endRectangleSelection = (e) => {
+                if (this.isRectangleSelection) {
+                    this.updateRectangleSelection(e);
+                    // 選択範囲を保持（後でコピー/ペースト処理で使用）
+                }
+            };
+            
+            this.cancelRectangleSelection = () => {
+                this.isRectangleSelection = false;
+                this.rectangleSelectionStart = null;
+                this.rectangleSelectionEnd = null;
+                this.rectangleSelections = [];
+                
+                const overlay = document.getElementById('rectangleSelectionOverlay');
+                overlay.classList.add('hidden');
+                overlay.innerHTML = '';
+            };
+            
+            this.getTextPositionFromMouse = (e, editor) => {
+                const rect = editor.getBoundingClientRect();
+                const x = e.clientX - rect.left - 20; // padding考慮
+                const y = e.clientY - rect.top - 20 + editor.scrollTop;
+                
+                // 文字の幅と高さを計算
+                const charWidth = this.getCharWidth(editor);
+                const lineHeight = parseFloat(window.getComputedStyle(editor).lineHeight);
+                
+                const col = Math.max(0, Math.floor(x / charWidth));
+                const row = Math.max(0, Math.floor(y / lineHeight));
+                
+                return { row, col };
+            };
+            
+            this.getCharWidth = (editor) => {
+                // 等幅フォントの文字幅を計算
+                const span = document.createElement('span');
+                span.style.font = window.getComputedStyle(editor).font;
+                span.style.position = 'absolute';
+                span.style.visibility = 'hidden';
+                span.textContent = 'M';
+                document.body.appendChild(span);
+                const width = span.offsetWidth;
+                document.body.removeChild(span);
+                return width;
+            };
+            
+            this.updateRectangleSelectionDisplay = () => {
+                const overlay = document.getElementById('rectangleSelectionOverlay');
+                const editor = document.getElementById('editor');
+                overlay.innerHTML = '';
+                
+                if (!this.rectangleSelectionStart || !this.rectangleSelectionEnd) return;
+                
+                const charWidth = this.getCharWidth(editor);
+                const lineHeight = parseFloat(window.getComputedStyle(editor).lineHeight);
+                
+                const startRow = Math.min(this.rectangleSelectionStart.row, this.rectangleSelectionEnd.row);
+                const endRow = Math.max(this.rectangleSelectionStart.row, this.rectangleSelectionEnd.row);
+                const startCol = Math.min(this.rectangleSelectionStart.col, this.rectangleSelectionEnd.col);
+                const endCol = Math.max(this.rectangleSelectionStart.col, this.rectangleSelectionEnd.col);
+                
+                // 選択範囲を表示
+                for (let row = startRow; row <= endRow; row++) {
+                    const selection = document.createElement('div');
+                    selection.className = 'rectangle-selection';
+                    selection.style.left = `${startCol * charWidth}px`;
+                    selection.style.top = `${row * lineHeight - editor.scrollTop}px`;
+                    selection.style.width = `${(endCol - startCol + 1) * charWidth}px`;
+                    selection.style.height = `${lineHeight}px`;
+                    overlay.appendChild(selection);
+                }
+                
+                // カーソル表示
+                for (let row = startRow; row <= endRow; row++) {
+                    const cursor = document.createElement('div');
+                    cursor.className = 'rectangle-cursor';
+                    cursor.style.left = `${endCol * charWidth + charWidth}px`;
+                    cursor.style.top = `${row * lineHeight - editor.scrollTop}px`;
+                    cursor.style.height = `${lineHeight}px`;
+                    overlay.appendChild(cursor);
+                }
+            };
+            
+            this.handleRectangleSelectionKeyboard = (key) => {
+                const editor = document.getElementById('editor');
+                
+                if (!this.isRectangleSelection) {
+                    // 新規矩形選択開始
+                    const pos = this.getCaretPosition(editor);
+                    this.isRectangleSelection = true;
+                    this.rectangleSelectionStart = pos;
+                    this.rectangleSelectionEnd = pos;
+                    
+                    const overlay = document.getElementById('rectangleSelectionOverlay');
+                    overlay.classList.remove('hidden');
+                }
+                
+                // キーボードで選択範囲を拡張
+                switch (key) {
+                    case 'ArrowUp':
+                        this.rectangleSelectionEnd.row = Math.max(0, this.rectangleSelectionEnd.row - 1);
+                        break;
+                    case 'ArrowDown':
+                        this.rectangleSelectionEnd.row++;
+                        break;
+                    case 'ArrowLeft':
+                        this.rectangleSelectionEnd.col = Math.max(0, this.rectangleSelectionEnd.col - 1);
+                        break;
+                    case 'ArrowRight':
+                        this.rectangleSelectionEnd.col++;
+                        break;
+                }
+                
+                this.updateRectangleSelectionDisplay();
+            };
+            
+            this.getCaretPosition = (editor) => {
+                const text = editor.value.substring(0, editor.selectionStart);
+                const lines = text.split('\n');
+                const row = lines.length - 1;
+                const col = lines[lines.length - 1].length;
+                return { row, col };
             };
         });
     </script>
