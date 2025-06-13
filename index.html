@@ -1033,6 +1033,83 @@
             margin-top: 4px;
         }
         
+        /* 競合解決ダイアログのスタイル */
+        .conflict-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #252526;
+            border: 1px solid #ff6b35;
+            border-radius: 8px;
+            padding: 24px;
+            z-index: 2100;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+            min-width: 600px;
+            max-width: 900px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .conflict-dialog h2 {
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #ff6b35;
+            font-size: 20px;
+            color: #ff6b35;
+        }
+        
+        .conflict-message {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 4px;
+            color: #ffffff;
+        }
+        
+        .conflict-message p {
+            margin: 0 0 8px 0;
+        }
+        
+        .conflict-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .version-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 16px;
+        }
+        
+        .version-section h3 {
+            margin: 0 0 12px 0;
+            color: #ffffff;
+            font-size: 16px;
+        }
+        
+        .version-preview {
+            flex: 1;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #d4d4d4;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 200px;
+            margin-bottom: 12px;
+        }
+        
         /* ハンバーガーメニューボタン */
         .mobile-menu-btn {
             display: none;
@@ -1281,6 +1358,24 @@
             
             .history-content {
                 max-height: 60vh;
+            }
+            
+            /* 競合解決ダイアログのモバイル対応 */
+            .conflict-dialog {
+                min-width: 90vw;
+                max-width: 90vw;
+                padding: 20px;
+                margin: 10px;
+                max-height: 85vh;
+            }
+            
+            .conflict-options {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .version-preview {
+                max-height: 120px;
             }
             
             .form-input {
@@ -1599,6 +1694,34 @@
         </div>
     </div>
     
+    <!-- 競合解決ダイアログ -->
+    <div class="conflict-dialog hidden" id="conflictDialog">
+        <h2>⚠️ 競合の解決</h2>
+        
+        <div class="conflict-message">
+            <p>他の端末でファイルが更新されましたが、現在のエディタには未保存の変更があります。</p>
+            <p>どちらのバージョンを使用しますか？</p>
+        </div>
+        
+        <div class="conflict-options">
+            <div class="version-section">
+                <h3>📝 現在の編集内容を保持</h3>
+                <div class="version-preview" id="currentVersionPreview"></div>
+                <button class="btn" id="keepCurrentVersion">現在の内容を保持して保存</button>
+            </div>
+            
+            <div class="version-section">
+                <h3>🔄 最新バージョンを使用</h3>
+                <div class="version-preview" id="latestVersionPreview"></div>
+                <button class="btn btn-secondary" id="useLatestVersion">最新バージョンに更新</button>
+            </div>
+        </div>
+        
+        <div class="dialog-buttons">
+            <button class="btn btn-cancel" id="cancelConflictResolution">後で決める</button>
+        </div>
+    </div>
+    
 
     <script>
         // アプリケーション設定
@@ -1640,6 +1763,11 @@
                 this.lastEditTime = 0;
                 this.isUserCurrentlyEditing = false;
                 this.scrollControlVisible = false;
+                // 競合防止機能の追加変数
+                this.editingSessionStartTime = 0;
+                this.hasUnsavedChanges = false;
+                this.pendingExternalUpdates = [];
+                this.isInConflictResolutionMode = false;
                 this.contextMenuTarget = null;
                 this.allFiles = []; // 全ファイルリスト（検索用）
                 this.allFolders = []; // 全フォルダリスト（検索用）
@@ -1758,6 +1886,11 @@
                 document.getElementById('historyBtn').addEventListener('click', () => this.showHistoryDialog());
                 document.getElementById('closeHistory').addEventListener('click', () => this.hideHistoryDialog());
                 
+                // 競合解決ダイアログのイベントリスナー
+                document.getElementById('keepCurrentVersion').addEventListener('click', () => this.resolveConflictKeepCurrent());
+                document.getElementById('useLatestVersion').addEventListener('click', () => this.resolveConflictUseLatest());
+                document.getElementById('cancelConflictResolution').addEventListener('click', () => this.cancelConflictResolution());
+                
                 // 認証ダイアログのイベントリスナー
                 document.getElementById('proceedAuth').addEventListener('click', () => this.handleAuthProceed());
                 document.getElementById('cancelAuth').addEventListener('click', () => this.hideAuthDialog());
@@ -1801,6 +1934,10 @@
                     if (e.target.id === 'historyDialog') {
                         this.hideHistoryDialog();
                     }
+                    // 競合解決ダイアログの外側クリックで閉じる
+                    if (e.target.id === 'conflictDialog') {
+                        this.cancelConflictResolution();
+                    }
                     // モバイルメニューの外側クリックで閉じる
                     if (!e.target.closest('.sidebar') && !e.target.closest('.mobile-menu-btn')) {
                         this.closeMobileMenu();
@@ -1819,6 +1956,7 @@
                         this.hideAuthDialog();
                         this.hideSettingsDialog();
                         this.hideHistoryDialog();
+                        this.cancelConflictResolution();
                     }
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
@@ -2938,6 +3076,9 @@
                 const editor = document.getElementById('editor');
                 editor.value = content;
                 
+                // 最後に保存されたコンテンツとして記録（競合検出用）
+                this.lastSavedContent = content;
+                
                 // 最後に開いたファイルとして記憶
                 this.setStoredLastFile(file);
                 
@@ -2976,6 +3117,9 @@
                 
                 // エディタを正常状態に復旧
                 this.resetEditorToNormalState();
+                
+                // Undo/Redoシステムを初期化
+                this.initializeUndoRedo();
                 
                 // 履歴ボタンを有効化
                 document.getElementById('historyBtn').disabled = false;
@@ -3068,6 +3212,7 @@
                         const result = await response.json();
                         this.currentFile.sha = result.content.sha;
                         this.lastKnownSHA = result.content.sha; // 同期用のSHAも更新
+                        this.lastSavedContent = content; // 保存されたコンテンツを記録（競合検出用）
                         console.log('✅ ファイルが保存されました - SHA更新:', result.content.sha);
                         
                         // 保存成功後、少し遅延して他のタブの同期チェックを促進
@@ -3100,12 +3245,25 @@
                 this.lastEditTime = Date.now();
                 this.isUserCurrentlyEditing = true;
                 
+                // 編集セッション開始時間を記録（初回のみ）
+                if (this.editingSessionStartTime === 0) {
+                    this.editingSessionStartTime = Date.now();
+                    console.log('🎯 Editing session started - conflict prevention activated');
+                }
+                
+                // 未保存変更フラグを更新
+                this.hasUnsavedChanges = this.checkForUnsavedChanges();
+                
                 // より保守的に15秒間編集がなければ編集終了とみなす
                 clearTimeout(this.editingTimeout);
                 this.editingTimeout = setTimeout(() => {
                     this.isUserCurrentlyEditing = false;
+                    this.editingSessionStartTime = 0; // セッション終了
                     console.log('📝 User editing session ended (15s timeout)');
                     this.updateEditingUI(false);
+                    
+                    // 編集終了時に保留中の外部更新をチェック
+                    this.processPendingExternalUpdates();
                 }, 15000); // 5秒→15秒に延長
                 
                 // 編集中UIを更新
@@ -3130,15 +3288,152 @@
             updateEditingUI(isEditing) {
                 const indicator = document.getElementById('syncIndicator');
                 if (isEditing) {
-                    indicator.title = '📝 編集中 - 自動同期は一時停止中';
+                    const sessionTime = Math.floor((Date.now() - this.editingSessionStartTime) / 1000);
+                    indicator.title = `📝 編集中 (${sessionTime}s) - 自動同期は一時停止中${this.hasUnsavedChanges ? ' | 未保存の変更あり' : ''}`;
                     // 編集中は薄いオレンジ色で表示
                     if (!indicator.classList.contains('checking') && !indicator.classList.contains('conflict')) {
-                        indicator.style.backgroundColor = 'rgba(255, 165, 0, 0.3)';
+                        indicator.style.backgroundColor = this.hasUnsavedChanges ? 'rgba(255, 165, 0, 0.5)' : 'rgba(255, 165, 0, 0.3)';
                     }
                 } else {
                     indicator.title = '';
                     indicator.style.backgroundColor = '';
                 }
+            }
+            
+            // 未保存変更のチェック
+            checkForUnsavedChanges() {
+                if (!this.currentFile || !this.lastSavedContent) {
+                    return false;
+                }
+                const currentContent = document.getElementById('editor').value;
+                return currentContent !== this.lastSavedContent;
+            }
+            
+            // 保留中の外部更新の処理
+            async processPendingExternalUpdates() {
+                if (this.pendingExternalUpdates.length === 0) {
+                    return;
+                }
+                
+                console.log(`🔄 Processing ${this.pendingExternalUpdates.length} pending external updates...`);
+                
+                // 最新の更新のみ処理（複数の更新がある場合）
+                const latestUpdate = this.pendingExternalUpdates[this.pendingExternalUpdates.length - 1];
+                this.pendingExternalUpdates = []; // クリア
+                
+                if (this.isUserEditing()) {
+                    console.log('📝 User still editing, re-queuing update...');
+                    this.pendingExternalUpdates.push(latestUpdate);
+                    return;
+                }
+                
+                // 競合解決モードに入る
+                this.isInConflictResolutionMode = true;
+                await this.handlePendingUpdate(latestUpdate);
+                this.isInConflictResolutionMode = false;
+            }
+            
+            // 保留更新の処理
+            async handlePendingUpdate(updateInfo) {
+                const { latestFileInfo, latestContent } = updateInfo;
+                const currentContent = document.getElementById('editor').value;
+                
+                // 内容が同じ場合は静かに更新
+                if (latestContent === currentContent) {
+                    this.lastKnownSHA = latestFileInfo.sha;
+                    this.currentFile.sha = latestFileInfo.sha;
+                    this.showSyncIndicator('synced');
+                    this.showQuietNotification('✅ 外部更新を確認しましたが、内容に変更はありませんでした', 'success');
+                    return;
+                }
+                
+                // 未保存の変更がある場合は、より慎重に処理
+                if (this.checkForUnsavedChanges()) {
+                    this.showConflictResolutionDialog(latestFileInfo, latestContent, currentContent);
+                } else {
+                    // 未保存変更がない場合は自動更新
+                    await this.autoUpdateToLatestVersion(latestFileInfo, latestContent);
+                    this.showQuietNotification('✅ 最新版に自動更新されました（編集終了後）', 'success');
+                }
+            }
+            
+            // 競合解決ダイアログの表示
+            showConflictResolutionDialog(latestFileInfo, latestContent, currentContent) {
+                // 競合情報を保存
+                this.conflictData = {
+                    latestFileInfo,
+                    latestContent,
+                    currentContent
+                };
+                
+                // プレビューを表示
+                const currentPreview = document.getElementById('currentVersionPreview');
+                const latestPreview = document.getElementById('latestVersionPreview');
+                
+                // 内容の最初の500文字を表示
+                currentPreview.textContent = currentContent.substring(0, 500) + (currentContent.length > 500 ? '\n...' : '');
+                latestPreview.textContent = latestContent.substring(0, 500) + (latestContent.length > 500 ? '\n...' : '');
+                
+                // ダイアログを表示
+                document.getElementById('conflictDialog').classList.remove('hidden');
+                console.log('⚠️ Conflict resolution dialog shown');
+            }
+            
+            // 競合解決: 現在の内容を保持
+            async resolveConflictKeepCurrent() {
+                if (!this.conflictData) return;
+                
+                console.log('📝 User chose to keep current version');
+                this.hideConflictDialog();
+                
+                try {
+                    // 現在の内容を保存
+                    await this.saveFile();
+                    this.showQuietNotification('✅ 現在の編集内容を保存しました', 'success');
+                } catch (error) {
+                    console.error('Error saving current version:', error);
+                    this.showQuietNotification('❌ 保存に失敗しました', 'error');
+                }
+                
+                this.conflictData = null;
+            }
+            
+            // 競合解決: 最新バージョンを使用
+            async resolveConflictUseLatest() {
+                if (!this.conflictData) return;
+                
+                console.log('🔄 User chose to use latest version');
+                this.hideConflictDialog();
+                
+                const { latestFileInfo, latestContent } = this.conflictData;
+                
+                try {
+                    // 最新バージョンに更新
+                    await this.autoUpdateToLatestVersion(latestFileInfo, latestContent);
+                    this.showQuietNotification('✅ 最新バージョンに更新しました', 'success');
+                } catch (error) {
+                    console.error('Error updating to latest version:', error);
+                    this.showQuietNotification('❌ 更新に失敗しました', 'error');
+                }
+                
+                this.conflictData = null;
+            }
+            
+            // 競合解決のキャンセル
+            cancelConflictResolution() {
+                if (!document.getElementById('conflictDialog').classList.contains('hidden')) {
+                    console.log('⏸️ Conflict resolution cancelled');
+                    this.hideConflictDialog();
+                    
+                    // 競合状態を継続
+                    this.showSyncIndicator('conflict');
+                    this.showQuietNotification('⚠️ 競合は未解決です。同期を再開するには手動で解決してください', 'warning');
+                }
+            }
+            
+            // 競合ダイアログを隠す
+            hideConflictDialog() {
+                document.getElementById('conflictDialog').classList.add('hidden');
             }
             
             updatePerformanceInfo({ lines, sizeKB, memoryMB, loadTime }) {
@@ -4156,27 +4451,22 @@
                     return;
                 }
                 
-                // ユーザーが編集中かどうかで処理を分岐（より保守的なロジック）
-                if (this.isUserEditing()) {
-                    console.log('📝 User is currently editing, deferring auto-update (SAFE MODE)');
+                // ユーザーが編集中かどうかで処理を分岐（強化された保守的ロジック）
+                if (this.isUserEditing() || this.isInConflictResolutionMode) {
+                    console.log('📝 User is currently editing or resolving conflicts, queuing external update');
+                    
+                    // 外部更新を保留キューに追加
+                    this.pendingExternalUpdates.push({
+                        latestFileInfo,
+                        latestContent,
+                        timestamp: Date.now()
+                    });
+                    
                     this.showQuietNotification('📝 他の端末で更新がありますが、編集中のため安全に保留中です', 'warning');
                     this.showSyncIndicator('conflict');
                     
-                    // より長い間隔で編集終了を待って再チェック（6秒→20秒）
-                    setTimeout(() => {
-                        if (!this.isUserEditing()) {
-                            console.log('🔄 User editing ended, retrying sync...');
-                            this.checkForUpdates();
-                        } else {
-                            console.log('📝 User still editing, will retry later...');
-                            // まだ編集中の場合はさらに20秒後に再チェック
-                            setTimeout(() => {
-                                if (!this.isUserEditing()) {
-                                    this.checkForUpdates();
-                                }
-                            }, 20000);
-                        }
-                    }, 20000); // 6秒→20秒に延長
+                    // 編集終了を待つ（onUserEditのタイムアウト処理で自動的に処理される）
+                    console.log(`📋 External update queued (${this.pendingExternalUpdates.length} pending)`);
                 } else {
                     // 最終確認: 自動更新直前にもう一度編集中チェック
                     if (this.isUserEditing()) {
