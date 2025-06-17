@@ -572,7 +572,7 @@
         .matrix-message {
             font-size: 18px;
             opacity: 0;
-            animation: messageFadeIn 2s ease-in-out 4s forwards;
+            animation: messageFadeIn 2s ease-in-out 4s forwards, messagePulse 3s ease-in-out 6s infinite;
             color: rgba(0, 255, 0, 0.6);
             text-shadow: 0 0 8px rgba(0, 255, 0, 0.8), 0 0 16px rgba(0, 255, 0, 0.4);
             font-family: 'Courier New', 'Lucida Console', monospace;
@@ -601,6 +601,21 @@
             100% { 
                 opacity: 1; 
                 transform: translateY(0); 
+            }
+        }
+        
+        @keyframes messagePulse {
+            0% { 
+                opacity: 1;
+                text-shadow: 0 0 8px rgba(0, 255, 0, 0.8), 0 0 16px rgba(0, 255, 0, 0.4);
+            }
+            50% { 
+                opacity: 0.3;
+                text-shadow: 0 0 4px rgba(0, 255, 0, 0.4), 0 0 8px rgba(0, 255, 0, 0.2);
+            }
+            100% { 
+                opacity: 1;
+                text-shadow: 0 0 8px rgba(0, 255, 0, 0.8), 0 0 16px rgba(0, 255, 0, 0.4);
             }
         }
         
@@ -1594,6 +1609,7 @@
                 letter-spacing: 1px;
                 text-transform: uppercase;
                 filter: brightness(1.1);
+                animation: messageFadeIn 2s ease-in-out 4s forwards, messagePulse 3s ease-in-out 6s infinite;
             }
         }
         
