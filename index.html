@@ -514,6 +514,85 @@
             display: none !important;
         }
         
+        /* マトリックス風オーバーレイ */
+        .matrix-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000000;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .matrix-overlay.hidden {
+            display: none !important;
+        }
+        
+        #matrixCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .matrix-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: #00ff00;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        .plainhub-logo {
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: logoFadeIn 3s ease-in-out 2s forwards;
+        }
+        
+        .plainhub-logo pre {
+            font-size: 12px;
+            line-height: 1;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            margin: 0;
+        }
+        
+        .matrix-message {
+            font-size: 18px;
+            opacity: 0;
+            animation: messageFadeIn 2s ease-in-out 4s forwards;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        @keyframes logoFadeIn {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.8); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+        
+        @keyframes messageFadeIn {
+            0% { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
         .app-footer {
             position: fixed;
             bottom: 0;
@@ -1477,6 +1556,16 @@
                 padding: 6px 10px;
             }
             
+            /* モバイル版のマトリックス効果調整 */
+            .plainhub-logo pre {
+                font-size: 8px;
+                line-height: 0.9;
+            }
+            
+            .matrix-message {
+                font-size: 14px;
+            }
+            
             .btn {
                 font-size: 12px;
                 padding: 6px 10px;
@@ -1601,6 +1690,15 @@
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
                 <div class="search-overlay hidden" id="searchOverlay"></div>
                 <div class="rectangle-selection-overlay hidden" id="rectangleSelectionOverlay"></div>
+                <div class="matrix-overlay hidden" id="matrixOverlay">
+                    <canvas id="matrixCanvas"></canvas>
+                    <div class="matrix-content">
+                        <div class="plainhub-logo">
+                            <pre id="plainhubAscii"></pre>
+                        </div>
+                        <div class="matrix-message">Connect to GitHub to start...</div>
+                    </div>
+                </div>
                 <textarea class="editor" id="editor" placeholder="Login to GitHub to start editing files..."></textarea>
             </div>
         </div>
@@ -1845,6 +1943,13 @@
                 this.hideSearchOverlay(); // 初期化時に検索オーバーレイを確実に隠す
                 this.updatePageTitle(); // 初期タイトルを設定
                 this.updateMobileAuthIcon(); // 初期状態のモバイルアイコンを設定
+                
+                // 初期状態でマトリックス表示（ログアウト状態）
+                this.showMatrixOverlay();
+                const editor = document.getElementById('editor');
+                editor.setAttribute('readonly', 'readonly');
+                editor.style.pointerEvents = 'none';
+                
                 this.checkAuthStatus();
             }
             
@@ -2667,11 +2772,24 @@
                     loginBtn.classList.add('hidden');
                     logoutBtn.classList.remove('hidden');
                     changeRepoBtn.style.display = 'inline-block';
+                    
+                    // ログイン時：マトリックス非表示、エディタ有効化
+                    this.hideMatrixOverlay();
+                    const editor = document.getElementById('editor');
+                    editor.removeAttribute('readonly');
+                    editor.style.pointerEvents = 'auto';
                 } else {
                     status.innerHTML = '🔴 <span style="font-size: 9px;">Disconnected</span>';
                     loginBtn.classList.remove('hidden');
                     logoutBtn.classList.add('hidden');
                     changeRepoBtn.style.display = 'none';
+                    
+                    // ログアウト時：マトリックス表示、エディタ無効化
+                    this.showMatrixOverlay();
+                    const editor = document.getElementById('editor');
+                    editor.setAttribute('readonly', 'readonly');
+                    editor.style.pointerEvents = 'none';
+                    editor.value = '';
                 }
                 
                 // モバイル認証アイコンを更新
@@ -5796,6 +5914,80 @@
                 const row = lines.length - 1;
                 const col = lines[lines.length - 1].length;
                 return { row, col };
+            };
+            
+            // マトリックス風エフェクト
+            this.initMatrixEffect = () => {
+                const canvas = document.getElementById('matrixCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Canvas サイズを設定
+                const resizeCanvas = () => {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                
+                // マトリックス文字
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?';
+                const fontSize = 14;
+                const columns = Math.floor(canvas.width / fontSize);
+                const drops = new Array(columns).fill(1);
+                
+                const draw = () => {
+                    // 背景を少し透明にして軌跡効果を作る
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 文字色を設定
+                    ctx.fillStyle = '#0F0';
+                    ctx.font = fontSize + 'px monospace';
+                    
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = characters[Math.floor(Math.random() * characters.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                        
+                        // ランダムにドロップをリセット
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                            drops[i] = 0;
+                        }
+                        drops[i]++;
+                    }
+                };
+                
+                // アニメーション開始
+                const matrixInterval = setInterval(draw, 50);
+                
+                // PlainHub アスキーアートを設定
+                const plainhubAscii = `
+    ██████╗ ██╗      █████╗ ██╗███╗   ██╗██╗  ██╗██╗   ██╗██████╗ 
+    ██╔══██╗██║     ██╔══██╗██║████╗  ██║██║  ██║██║   ██║██╔══██╗
+    ██████╔╝██║     ███████║██║██╔██╗ ██║███████║██║   ██║██████╔╝
+    ██╔═══╝ ██║     ██╔══██║██║██║╚██╗██║██╔══██║██║   ██║██╔══██╗
+    ██║     ███████╗██║  ██║██║██║ ╚████║██║  ██║╚██████╔╝██████╔╝
+    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝`;
+                
+                document.getElementById('plainhubAscii').textContent = plainhubAscii;
+                
+                // 7秒後にアニメーション停止（メモリ節約）
+                setTimeout(() => {
+                    clearInterval(matrixInterval);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }, 7000);
+            };
+            
+            this.showMatrixOverlay = () => {
+                const overlay = document.getElementById('matrixOverlay');
+                overlay.classList.remove('hidden');
+                this.initMatrixEffect();
+            };
+            
+            this.hideMatrixOverlay = () => {
+                const overlay = document.getElementById('matrixOverlay');
+                overlay.classList.add('hidden');
             };
         });
     </script>
