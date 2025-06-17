@@ -559,16 +559,22 @@
         .plainhub-logo pre {
             font-size: 12px;
             line-height: 1;
-            color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
+            color: rgba(0, 255, 0, 0.7);
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
             margin: 0;
+            font-weight: 300;
+            font-style: normal;
+            letter-spacing: 1px;
         }
         
         .matrix-message {
             font-size: 18px;
             opacity: 0;
             animation: messageFadeIn 2s ease-in-out 4s forwards;
-            text-shadow: 0 0 10px #00ff00;
+            color: rgba(0, 255, 0, 0.8);
+            text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+            font-weight: 300;
+            letter-spacing: 2px;
         }
         
         @keyframes logoFadeIn {
@@ -1560,10 +1566,18 @@
             .plainhub-logo pre {
                 font-size: 8px;
                 line-height: 0.9;
+                color: rgba(0, 255, 0, 0.7);
+                text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
+                font-weight: 300;
+                letter-spacing: 0.5px;
             }
             
             .matrix-message {
                 font-size: 14px;
+                color: rgba(0, 255, 0, 0.8);
+                text-shadow: 0 0 4px rgba(0, 255, 0, 0.4);
+                font-weight: 300;
+                letter-spacing: 1px;
             }
             
             .btn {
@@ -2216,14 +2230,21 @@
                 // アニメーション開始
                 const matrixInterval = setInterval(draw, 50);
                 
-                // PlainHub アスキーアートを設定
+                // PlainHub アスキーアートを設定（大文字小文字使い分け）
                 const plainhubAscii = `
     ██████╗ ██╗      █████╗ ██╗███╗   ██╗██╗  ██╗██╗   ██╗██████╗ 
     ██╔══██╗██║     ██╔══██╗██║████╗  ██║██║  ██║██║   ██║██╔══██╗
     ██████╔╝██║     ███████║██║██╔██╗ ██║███████║██║   ██║██████╔╝
     ██╔═══╝ ██║     ██╔══██║██║██║╚██╗██║██╔══██║██║   ██║██╔══██╗
     ██║     ███████╗██║  ██║██║██║ ╚████║██║  ██║╚██████╔╝██████╔╝
-    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝`;
+    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+                                                                     
+                    ██╗  ██╗██╗   ██╗██████╗ 
+                    ██║  ██║██║   ██║██╔══██╗
+                    ███████║██║   ██║██████╔╝
+                    ██╔══██║██║   ██║██╔══██╗
+                    ██║  ██║╚██████╔╝██████╔╝
+                    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ `;
                 
                 document.getElementById('plainhubAscii').textContent = plainhubAscii;
                 
