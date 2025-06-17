@@ -2172,6 +2172,80 @@
                 });
             }
             
+            // マトリックス風エフェクト
+            initMatrixEffect() {
+                const canvas = document.getElementById('matrixCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Canvas サイズを設定
+                const resizeCanvas = () => {
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                
+                // マトリックス文字
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?';
+                const fontSize = 14;
+                const columns = Math.floor(canvas.width / fontSize);
+                const drops = new Array(columns).fill(1);
+                
+                const draw = () => {
+                    // 背景を少し透明にして軌跡効果を作る
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 文字色を設定
+                    ctx.fillStyle = '#0F0';
+                    ctx.font = fontSize + 'px monospace';
+                    
+                    for (let i = 0; i < drops.length; i++) {
+                        const text = characters[Math.floor(Math.random() * characters.length)];
+                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                        
+                        // ランダムにドロップをリセット
+                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                            drops[i] = 0;
+                        }
+                        drops[i]++;
+                    }
+                };
+                
+                // アニメーション開始
+                const matrixInterval = setInterval(draw, 50);
+                
+                // PlainHub アスキーアートを設定
+                const plainhubAscii = `
+    ██████╗ ██╗      █████╗ ██╗███╗   ██╗██╗  ██╗██╗   ██╗██████╗ 
+    ██╔══██╗██║     ██╔══██╗██║████╗  ██║██║  ██║██║   ██║██╔══██╗
+    ██████╔╝██║     ███████║██║██╔██╗ ██║███████║██║   ██║██████╔╝
+    ██╔═══╝ ██║     ██╔══██║██║██║╚██╗██║██╔══██║██║   ██║██╔══██╗
+    ██║     ███████╗██║  ██║██║██║ ╚████║██║  ██║╚██████╔╝██████╔╝
+    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝`;
+                
+                document.getElementById('plainhubAscii').textContent = plainhubAscii;
+                
+                // 7秒後にアニメーション停止（メモリ節約）
+                setTimeout(() => {
+                    clearInterval(matrixInterval);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }, 7000);
+            }
+            
+            showMatrixOverlay() {
+                const overlay = document.getElementById('matrixOverlay');
+                overlay.classList.remove('hidden');
+                this.initMatrixEffect();
+            }
+            
+            hideMatrixOverlay() {
+                const overlay = document.getElementById('matrixOverlay');
+                overlay.classList.add('hidden');
+            }
+            
             async checkAuthStatus() {
                 this.githubToken = this.getStoredToken();
                 this.currentRepo = this.getStoredRepo();
@@ -5913,80 +5987,6 @@
                 const row = lines.length - 1;
                 const col = lines[lines.length - 1].length;
                 return { row, col };
-            };
-            
-            // マトリックス風エフェクト
-            this.initMatrixEffect = () => {
-                const canvas = document.getElementById('matrixCanvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Canvas サイズを設定
-                const resizeCanvas = () => {
-                    canvas.width = canvas.offsetWidth;
-                    canvas.height = canvas.offsetHeight;
-                };
-                
-                resizeCanvas();
-                window.addEventListener('resize', resizeCanvas);
-                
-                // マトリックス文字
-                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?';
-                const fontSize = 14;
-                const columns = Math.floor(canvas.width / fontSize);
-                const drops = new Array(columns).fill(1);
-                
-                const draw = () => {
-                    // 背景を少し透明にして軌跡効果を作る
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // 文字色を設定
-                    ctx.fillStyle = '#0F0';
-                    ctx.font = fontSize + 'px monospace';
-                    
-                    for (let i = 0; i < drops.length; i++) {
-                        const text = characters[Math.floor(Math.random() * characters.length)];
-                        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                        
-                        // ランダムにドロップをリセット
-                        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                            drops[i] = 0;
-                        }
-                        drops[i]++;
-                    }
-                };
-                
-                // アニメーション開始
-                const matrixInterval = setInterval(draw, 50);
-                
-                // PlainHub アスキーアートを設定
-                const plainhubAscii = `
-    ██████╗ ██╗      █████╗ ██╗███╗   ██╗██╗  ██╗██╗   ██╗██████╗ 
-    ██╔══██╗██║     ██╔══██╗██║████╗  ██║██║  ██║██║   ██║██╔══██╗
-    ██████╔╝██║     ███████║██║██╔██╗ ██║███████║██║   ██║██████╔╝
-    ██╔═══╝ ██║     ██╔══██║██║██║╚██╗██║██╔══██║██║   ██║██╔══██╗
-    ██║     ███████╗██║  ██║██║██║ ╚████║██║  ██║╚██████╔╝██████╔╝
-    ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝`;
-                
-                document.getElementById('plainhubAscii').textContent = plainhubAscii;
-                
-                // 7秒後にアニメーション停止（メモリ節約）
-                setTimeout(() => {
-                    clearInterval(matrixInterval);
-                    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }, 7000);
-            };
-            
-            this.showMatrixOverlay = () => {
-                const overlay = document.getElementById('matrixOverlay');
-                overlay.classList.remove('hidden');
-                this.initMatrixEffect();
-            };
-            
-            this.hideMatrixOverlay = () => {
-                const overlay = document.getElementById('matrixOverlay');
-                overlay.classList.add('hidden');
             };
         });
     </script>
