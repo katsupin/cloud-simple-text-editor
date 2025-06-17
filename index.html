@@ -89,6 +89,20 @@
             background: #252526;
             border-right: 1px solid #3e3e42;
             padding: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .sidebar.collapsed {
+            width: 0;
+            padding: 20px 0;
+            border-right: none;
+        }
+        
+        .main-container.sidebar-collapsed .sidebar {
+            width: 0;
+            padding: 20px 0;
+            border-right: none;
         }
         
         #fileListHeader {
@@ -422,6 +436,48 @@
         .whitespace-char {
             color: rgba(100, 180, 255, 0.8) !important;
             font-weight: bold !important;
+        }
+        
+        /* 行番号表示用のオーバーレイ */
+        .line-numbers-overlay {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            bottom: 20px;
+            width: 50px;
+            pointer-events: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #858585;
+            background: rgba(37, 37, 38, 0.95);
+            border-right: 1px solid #3e3e42;
+            user-select: none;
+            z-index: 5;
+            padding: 0 8px 0 5px;
+            text-align: right;
+            white-space: pre;
+            overflow: hidden;
+            box-sizing: border-box;
+            padding-bottom: calc(100vh - 250px);
+        }
+        
+        .line-numbers-overlay .line-number {
+            display: block;
+            min-height: 21px;
+        }
+        
+        /* 行番号表示時のエディタの調整 */
+        .editor-wrapper.with-line-numbers .editor {
+            padding-left: 70px;
+        }
+        
+        .editor-wrapper.with-line-numbers .whitespace-overlay {
+            left: 70px;
+        }
+        
+        .editor-wrapper.with-line-numbers .search-overlay {
+            left: 70px;
         }
         
         /* エディタ内検索ハイライトのスタイル */
@@ -1250,7 +1306,25 @@
             margin-bottom: 12px;
         }
         
-        /* ハンバーガーメニューボタン */
+        /* サイドバートグルボタン（PC版） */
+        .sidebar-toggle-btn {
+            display: block;
+            background: none;
+            border: none;
+            color: #cccccc;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-toggle-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* ハンバーガーメニューボタン（モバイル版） */
         .mobile-menu-btn {
             display: none;
             background: none;
@@ -1426,6 +1500,10 @@
                 transform: translateX(0);
             }
             
+            .sidebar-toggle-btn {
+                display: none;
+            }
+            
             .mobile-menu-btn {
                 display: block;
                 font-size: 20px;
@@ -1470,6 +1548,29 @@
                 max-height: calc(100% - 30px);
                 font-size: 16px !important;
                 line-height: 1.4 !important; /* エディタと同じline-heightに統一 */
+            }
+            
+            /* モバイル版行番号オーバーレイ */
+            .line-numbers-overlay {
+                top: 15px;
+                bottom: 15px;
+                width: 40px;
+                font-size: 16px;
+                line-height: 1.4;
+                padding: 0 6px 0 3px;
+                padding-bottom: calc(100vh - 200px);
+            }
+            
+            .editor-wrapper.with-line-numbers .editor {
+                padding-left: 55px;
+            }
+            
+            .editor-wrapper.with-line-numbers .whitespace-overlay {
+                left: 55px;
+            }
+            
+            .editor-wrapper.with-line-numbers .search-overlay {
+                left: 55px;
             }
             
             .editor-wrapper {
@@ -1706,6 +1807,7 @@
 <body>
     <div class="header">
         <div class="header-top">
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle sidebar (Ctrl+B)">☰</button>
             <button class="mobile-menu-btn" id="mobileMenuBtn" title="File list">☰</button>
             <h1><a href="https://katsupin.github.io/cloud-simple-text-editor/landing.html" target="_blank" style="color: inherit; text-decoration: none;" title="PlainHub Home">📝 PlainHub</a></h1>
             <button class="mobile-auth-toggle" id="mobileAuthToggle" title="Login/Logout">🔐</button>
@@ -1743,12 +1845,14 @@
                     <button class="tool-btn" id="undoBtn" title="元に戻す (Ctrl+Z)" disabled>↶</button>
                     <button class="tool-btn" id="redoBtn" title="やり直し (Ctrl+Y)" disabled>↷</button>
                     <button class="tool-btn" id="whitespaceToggle" title="不可視文字の表示/非表示を切り替え">¶</button>
+                    <button class="tool-btn" id="lineNumberToggle" title="行番号の表示/非表示を切り替え">🔢</button>
                     <button class="tool-btn" id="historyBtn" title="ファイル履歴" disabled>🕐</button>
                     <button class="tool-btn" id="settingsToggle" title="設定">⚙️</button>
                     <div class="sync-indicator hidden" id="syncIndicator"></div>
                 </div>
             </div>
             <div class="editor-wrapper">
+                <div class="line-numbers-overlay hidden" id="lineNumbersOverlay"></div>
                 <div class="whitespace-overlay hidden" id="whitespaceOverlay"></div>
                 <div class="search-overlay hidden" id="searchOverlay"></div>
                 <div class="rectangle-selection-overlay hidden" id="rectangleSelectionOverlay"></div>
@@ -1971,6 +2075,8 @@
                 this.searchMode = 'name'; // 'name' or 'content'
                 this.contentSearchCache = new Map(); // ファイル内容のキャッシュ
                 this.showWhitespace = false; // 不可視文字表示フラグ
+                this.showLineNumbers = false; // 行番号表示フラグ
+                this.sidebarCollapsed = false; // サイドバー折りたたみフラグ
                 
                 // 矩形選択機能の変数
                 this.isRectangleSelection = false;
@@ -1998,7 +2104,11 @@
                 
                 // showWhitespaceの初期化を設定から取得（フォールバック付き）
                 this.showWhitespace = this.settings?.showWhitespace ?? false;
+                this.showLineNumbers = this.settings?.showLineNumbers ?? false;
+                this.sidebarCollapsed = this.settings?.sidebarCollapsed ?? false;
                 console.log('🔧 showWhitespace initialized:', this.showWhitespace, 'from settings:', this.settings?.showWhitespace);
+                console.log('🔧 showLineNumbers initialized:', this.showLineNumbers, 'from settings:', this.settings?.showLineNumbers);
+                console.log('🔧 sidebarCollapsed initialized:', this.sidebarCollapsed, 'from settings:', this.settings?.sidebarCollapsed);
                 
                 // UIボタンの状態を設定に合わせる
                 this.syncUIFromSettings();
@@ -2064,15 +2174,32 @@
                 // 不可視文字表示のイベントリスナー
                 document.getElementById('whitespaceToggle').addEventListener('click', () => this.toggleWhitespaceDisplay());
                 
+                // 行番号表示のイベントリスナー
+                document.getElementById('lineNumberToggle').addEventListener('click', () => this.toggleLineNumberDisplay());
+                
+                // サイドバー折りたたみのイベントリスナー
+                document.getElementById('sidebarToggleBtn').addEventListener('click', () => this.toggleSidebar());
+                
+                // グローバルキーボードショートカット
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+B でサイドバー切り替え
+                    if (e.ctrlKey && e.key === 'b' && !e.shiftKey && !e.altKey) {
+                        e.preventDefault();
+                        this.toggleSidebar();
+                    }
+                });
+                
                 // エディタの変更とスクロールに応じてオーバーレイを更新
                 const editor = document.getElementById('editor');
                 editor.addEventListener('input', () => {
                     this.updateWhitespaceOverlay();
                     this.updateSearchOverlay();
+                    this.updateLineNumberOverlay();
                 });
                 editor.addEventListener('scroll', () => {
                     this.syncOverlayScroll();
                     this.syncSearchOverlayScroll();
+                    this.syncLineNumberScroll();
                     // 矩形選択オーバーレイも更新
                     if (this.isRectangleSelection) {
                         this.updateRectangleSelectionDisplay();
@@ -2689,6 +2816,33 @@
                     toggle?.classList.remove('active');
                     overlay?.classList.add('hidden');
                     editor?.classList.remove('show-whitespace');
+                }
+                
+                // 行番号表示の初期化
+                const lineNumberToggle = document.getElementById('lineNumberToggle');
+                const lineNumberOverlay = document.getElementById('lineNumbersOverlay');
+                const editorWrapper = document.querySelector('.editor-wrapper');
+                
+                if (this.showLineNumbers) {
+                    lineNumberToggle?.classList.add('active');
+                    lineNumberOverlay?.classList.remove('hidden');
+                    editorWrapper?.classList.add('with-line-numbers');
+                } else {
+                    lineNumberToggle?.classList.remove('active');
+                    lineNumberOverlay?.classList.add('hidden');
+                    editorWrapper?.classList.remove('with-line-numbers');
+                }
+                
+                // サイドバー折りたたみの初期化
+                const mainContainer = document.querySelector('.main-container');
+                const sidebar = document.querySelector('.sidebar');
+                
+                if (this.sidebarCollapsed) {
+                    mainContainer?.classList.add('sidebar-collapsed');
+                    sidebar?.classList.add('collapsed');
+                } else {
+                    mainContainer?.classList.remove('sidebar-collapsed');
+                    sidebar?.classList.remove('collapsed');
                 }
             }
             
@@ -3446,6 +3600,9 @@
                 
                 // 不可視文字オーバーレイを更新
                 setTimeout(() => this.updateWhitespaceOverlay(), 100);
+                
+                // 行番号オーバーレイを更新
+                setTimeout(() => this.updateLineNumberOverlay(), 100);
                 
                 // 検索ハイライトオーバーレイを更新（検索中の場合）
                 setTimeout(() => this.updateSearchOverlay(), 100);
@@ -4248,6 +4405,77 @@
                     overlay.style.backgroundColor = '';
                     overlay.style.overflow = '';
                     overlay.style.zIndex = '';
+                }
+            }
+            
+            toggleLineNumberDisplay() {
+                const toggle = document.getElementById('lineNumberToggle');
+                const overlay = document.getElementById('lineNumbersOverlay');
+                const editorWrapper = document.querySelector('.editor-wrapper');
+                
+                this.showLineNumbers = !this.showLineNumbers;
+                
+                // 設定を保存
+                this.settings.showLineNumbers = this.showLineNumbers;
+                this.saveSettings();
+                
+                if (this.showLineNumbers) {
+                    toggle.classList.add('active');
+                    overlay.classList.remove('hidden');
+                    editorWrapper.classList.add('with-line-numbers');
+                    
+                    this.updateLineNumberOverlay();
+                } else {
+                    toggle.classList.remove('active');
+                    overlay.classList.add('hidden');
+                    editorWrapper.classList.remove('with-line-numbers');
+                    
+                    overlay.innerHTML = '';
+                }
+            }
+            
+            updateLineNumberOverlay() {
+                if (!this.showLineNumbers) return;
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('lineNumbersOverlay');
+                const text = editor.value;
+                
+                const lineCount = text.split('\n').length;
+                const lineNumbers = [];
+                
+                for (let i = 1; i <= lineCount; i++) {
+                    lineNumbers.push(`<span class="line-number">${i}</span>`);
+                }
+                
+                overlay.innerHTML = lineNumbers.join('\n');
+            }
+            
+            syncLineNumberScroll() {
+                if (!this.showLineNumbers) return;
+                
+                const editor = document.getElementById('editor');
+                const overlay = document.getElementById('lineNumbersOverlay');
+                
+                overlay.scrollTop = editor.scrollTop;
+            }
+            
+            toggleSidebar() {
+                const mainContainer = document.querySelector('.main-container');
+                const sidebar = document.querySelector('.sidebar');
+                
+                this.sidebarCollapsed = !this.sidebarCollapsed;
+                
+                // 設定を保存
+                this.settings.sidebarCollapsed = this.sidebarCollapsed;
+                this.saveSettings();
+                
+                if (this.sidebarCollapsed) {
+                    mainContainer.classList.add('sidebar-collapsed');
+                    sidebar.classList.add('collapsed');
+                } else {
+                    mainContainer.classList.remove('sidebar-collapsed');
+                    sidebar.classList.remove('collapsed');
                 }
             }
             
