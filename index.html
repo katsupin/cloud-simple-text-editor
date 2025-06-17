@@ -463,8 +463,8 @@
         }
         
         .line-numbers-overlay .line-number {
-            display: block;
-            min-height: 21px;
+            height: 21px;
+            line-height: 21px;
         }
         
         /* 行番号表示時のエディタの調整 */
@@ -4445,10 +4445,10 @@
                 const lineNumbers = [];
                 
                 for (let i = 1; i <= lineCount; i++) {
-                    lineNumbers.push(`<span class="line-number">${i}</span>`);
+                    lineNumbers.push(`<div class="line-number">${i}</div>`);
                 }
                 
-                overlay.innerHTML = lineNumbers.join('\n');
+                overlay.innerHTML = lineNumbers.join('');
             }
             
             syncLineNumberScroll() {
