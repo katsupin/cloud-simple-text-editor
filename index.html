@@ -559,22 +559,27 @@
         .plainhub-logo pre {
             font-size: 12px;
             line-height: 1;
-            color: rgba(0, 255, 0, 0.7);
-            text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+            color: rgba(0, 255, 0, 0.4);
+            text-shadow: 0 0 12px rgba(0, 255, 0, 0.6), 0 0 24px rgba(0, 255, 0, 0.3);
             margin: 0;
-            font-weight: 300;
+            font-family: 'Courier New', 'Lucida Console', monospace;
+            font-weight: 100;
             font-style: normal;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            filter: brightness(1.2);
         }
         
         .matrix-message {
             font-size: 18px;
             opacity: 0;
             animation: messageFadeIn 2s ease-in-out 4s forwards;
-            color: rgba(0, 255, 0, 0.8);
-            text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
-            font-weight: 300;
-            letter-spacing: 2px;
+            color: rgba(0, 255, 0, 0.6);
+            text-shadow: 0 0 8px rgba(0, 255, 0, 0.8), 0 0 16px rgba(0, 255, 0, 0.4);
+            font-family: 'Courier New', 'Lucida Console', monospace;
+            font-weight: 100;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            filter: brightness(1.1);
         }
         
         @keyframes logoFadeIn {
@@ -1566,18 +1571,23 @@
             .plainhub-logo pre {
                 font-size: 8px;
                 line-height: 0.9;
-                color: rgba(0, 255, 0, 0.7);
-                text-shadow: 0 0 6px rgba(0, 255, 0, 0.4);
-                font-weight: 300;
-                letter-spacing: 0.5px;
+                color: rgba(0, 255, 0, 0.4);
+                text-shadow: 0 0 8px rgba(0, 255, 0, 0.6), 0 0 16px rgba(0, 255, 0, 0.3);
+                font-family: 'Courier New', 'Lucida Console', monospace;
+                font-weight: 100;
+                letter-spacing: 1px;
+                filter: brightness(1.2);
             }
             
             .matrix-message {
                 font-size: 14px;
-                color: rgba(0, 255, 0, 0.8);
-                text-shadow: 0 0 4px rgba(0, 255, 0, 0.4);
-                font-weight: 300;
-                letter-spacing: 1px;
+                color: rgba(0, 255, 0, 0.6);
+                text-shadow: 0 0 6px rgba(0, 255, 0, 0.8), 0 0 12px rgba(0, 255, 0, 0.4);
+                font-family: 'Courier New', 'Lucida Console', monospace;
+                font-weight: 100;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                filter: brightness(1.1);
             }
             
             .btn {
@@ -1930,6 +1940,9 @@
                 this.rectangleSelectionEnd = null;
                 this.rectangleSelections = [];
                 this.isAltPressed = false;
+                
+                // マトリックス効果の変数
+                this.matrixAnimationId = null;
                 this.isSearching = false;
                 this.searchHighlightEnabled = false; // 検索ハイライト表示フラグ
                 
@@ -2248,12 +2261,9 @@
                 
                 document.getElementById('plainhubAscii').textContent = plainhubAscii;
                 
-                // 7秒後にアニメーション停止（メモリ節約）
-                setTimeout(() => {
-                    clearInterval(matrixInterval);
-                    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }, 7000);
+                // アニメーションを継続（ログアウト中は常時表示）
+                // メモリ効率のため、このインターバルIDを保存
+                this.matrixAnimationId = matrixInterval;
             }
             
             showMatrixOverlay() {
@@ -2265,6 +2275,12 @@
             hideMatrixOverlay() {
                 const overlay = document.getElementById('matrixOverlay');
                 overlay.classList.add('hidden');
+                
+                // アニメーション停止（ログイン時にメモリ節約）
+                if (this.matrixAnimationId) {
+                    clearInterval(this.matrixAnimationId);
+                    this.matrixAnimationId = null;
+                }
             }
             
             async checkAuthStatus() {
