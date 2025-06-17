@@ -1944,12 +1944,6 @@
                 this.updatePageTitle(); // 初期タイトルを設定
                 this.updateMobileAuthIcon(); // 初期状態のモバイルアイコンを設定
                 
-                // 初期状態でマトリックス表示（ログアウト状態）
-                this.showMatrixOverlay();
-                const editor = document.getElementById('editor');
-                editor.setAttribute('readonly', 'readonly');
-                editor.style.pointerEvents = 'none';
-                
                 this.checkAuthStatus();
             }
             
@@ -2227,6 +2221,11 @@
                     }
                 } else {
                     console.log('🔓 No stored token found');
+                    // 初期状態でマトリックス表示（ログアウト状態）
+                    this.showMatrixOverlay();
+                    const editor = document.getElementById('editor');
+                    editor.setAttribute('readonly', 'readonly');
+                    editor.style.pointerEvents = 'none';
                 }
             }
             
